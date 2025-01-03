@@ -8,7 +8,7 @@ This repository is home to several codes that together enable forecasts of total
 
 <p align="center">
 <img src="figures/lc_map.png" alt="Figure 1." width=520 height=394 />
-<figcaption> **Figure 1.** The Lake Champlain Basin and major tributaries. </figcaption>
+<figcaption> <b>Figure 1.</b> The Lake Champlain Basin and major tributaries. </figcaption>
 </p>
 
 ## Specific files
