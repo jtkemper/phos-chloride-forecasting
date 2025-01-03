@@ -3,7 +3,7 @@ Developing models and forecasting phosphorus and chloride in the Lake Champlain 
 
 ## Overview
 
-This repository is home to several codes that together enable forecasts of total phosphorus and chloride to be made from National Water Model streamflow forecasts. This is intended as a proof-of-concept for the broad idea of building nutrient and other water quality forecasts by training machine learning models on monitoring data and feeding those models a streamflow forecast. The testbed for this approach is the Lake Champlain Basin of Vermont and New York, USA, and southern Quebec, CA (Fig. 1), where water quality and streamflow monitoring data span a 30+ year period from 1990-present. 
+This repository is home to a sequence of scripts that can be used to develop forecasts of total phosphorus and chloride from National Water Model streamflow forecasts. This is intended as a proof-of-concept for a more general approach: utilizing monitoring datasets and machine learning algorithms to build nutrient and other water quality forecasts from large-scale streamflow forecasting models. The testbed for this approach is the Lake Champlain Basin of Vermont and New York, USA, and southern Quebec, CA (Fig. 1), where water quality and streamflow monitoring data span a 30+ year period from 1990-present. 
 
 
 <p align="center">
