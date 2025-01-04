@@ -143,7 +143,7 @@ wq_data_profile <- EPATADA::TADA_DataRetrieval(
 #### Map locations of samples and inspect to make sure they fall in both
 #### VT & NY and include all the tribs we want
 
-TADA::TADA_OverviewMap(wq_data_profile %>%
+EPATADA::TADA_OverviewMap(wq_data_profile %>%
                          rename(TADA.LatitudeMeasure = ActivityLocation.LatitudeMeasure,
                                 TADA.LongitudeMeasure = ActivityLocation.LongitudeMeasure,
                                 TADA.CharacteristicName = CharacteristicName) %>%
@@ -168,7 +168,7 @@ site_ids_wq <- wq_data_profile %>%
 
 #### Now plot again to make sure that we selected the right ones
 
-TADA::TADA_OverviewMap(wq_data_profile %>%
+EPATADA::TADA_OverviewMap(wq_data_profile %>%
                          rename(TADA.LatitudeMeasure = ActivityLocation.LatitudeMeasure,
                                 TADA.LongitudeMeasure = ActivityLocation.LongitudeMeasure,
                                 TADA.CharacteristicName = CharacteristicName) %>%
