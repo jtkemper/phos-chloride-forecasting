@@ -13,6 +13,25 @@ basin, but it is flexible enough so that interested users can modify
 various lines to download from the gages and sampling sites of interest
 to them.
 
+**Required inputs**
+
+1)  NWIS site numbers for sites of interest
+    (data/lake_champlain_usgs_gages.csv)
+
+2)  Missing data from Little Otter Creek(data/little_otter_tp.csv &
+    data/little_otter_chlor.csv)
+
+\*\*\*\* Note that, for adapting to other sites, only \#1 would be
+required
+
+**Outputs/Returns**
+
+1)  Raw dataframe of daily streamflow data for 18 watersheds in Lake
+    Champlain
+
+2)  Raw water quality dataframe for total phosphorus and chloride
+    concentration as measured in each of those 18 watersheds
+
 ################################################################################ 
 
 # Housekeeping
