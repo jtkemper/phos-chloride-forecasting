@@ -204,6 +204,7 @@ rm(wq_data_profile)
 ``` r
 #### Downloads USGS flow data 
 #### We want to daily values
+#### so let's download them
 
 flow_data <- dataRetrieval::readNWISdv(siteNumbers = lc_sites_metadata_all$site_no, 
                           parameterCd = "00060",

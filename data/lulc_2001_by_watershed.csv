@@ -1,0 +1,153 @@
+﻿OBJECTID,tributary,ZONE_CODE,CLASS,CLASS_CODE,Count,Area
+1,Missisquoi River,1,Urban,1,121174,109056600
+2,Missisquoi River,1,Agriculture,2,410313,369281700
+3,Missisquoi River,1,Brush,3,55150,49635000
+4,Missisquoi River,1,Forest,4,1811899,1630709100
+5,Missisquoi River,1,Water,5,19307,17376300
+6,Missisquoi River,1,Wetland,6,26866,24179400
+7,Missisquoi River,1,Barren,7,3957,3561300
+8,Missisquoi River,1,Urban-Open,8,32192,28972800
+9,Otter Creek,2,Urban,1,129178,116260200
+10,Otter Creek,2,Agriculture,2,484425,435982500
+11,Otter Creek,2,Brush,3,67132,60418800
+12,Otter Creek,2,Forest,4,1687590,1518831000
+13,Otter Creek,2,Water,5,19228,17305200
+14,Otter Creek,2,Wetland,6,60183,54164700
+15,Otter Creek,2,Barren,7,2002,1801800
+16,Otter Creek,2,Urban-Open,8,76069,68462100
+17,Little Otter Creek,3,Urban,1,8865,7978500
+18,Little Otter Creek,3,Agriculture,2,84256,75830400
+19,Little Otter Creek,3,Brush,3,4224,3801600
+20,Little Otter Creek,3,Forest,4,63831,57447900
+21,Little Otter Creek,3,Water,5,391,351900
+22,Little Otter Creek,3,Wetland,6,2778,2500200
+23,Little Otter Creek,3,Barren,7,328,295200
+24,Little Otter Creek,3,Urban-Open,8,8091,7281900
+25,Lewis Creek,4,Urban,1,11194,10074600
+26,Lewis Creek,4,Agriculture,2,54891,49401900
+27,Lewis Creek,4,Brush,3,4416,3974400
+28,Lewis Creek,4,Forest,4,141918,127726200
+29,Lewis Creek,4,Water,5,2473,2225700
+30,Lewis Creek,4,Wetland,6,7172,6454800
+31,Lewis Creek,4,Barren,7,755,679500
+32,Lewis Creek,4,Urban-Open,8,7579,6821100
+33,Laplatte River,5,Urban,1,12289,11060100
+34,Laplatte River,5,Agriculture,2,60489,54440100
+35,Laplatte River,5,Brush,3,7226,6503400
+36,Laplatte River,5,Forest,4,59610,53649000
+37,Laplatte River,5,Water,5,1582,1423800
+38,Laplatte River,5,Wetland,6,1891,1701900
+39,Laplatte River,5,Barren,7,20,18000
+40,Laplatte River,5,Urban-Open,8,9375,8437500
+41,Jewett Brook,6,Urban,1,8780,7902000
+42,Jewett Brook,6,Agriculture,2,39712,35740800
+43,Jewett Brook,6,Brush,3,761,684900
+44,Jewett Brook,6,Forest,4,12552,11296800
+45,Jewett Brook,6,Water,5,121,108900
+46,Jewett Brook,6,Wetland,6,1464,1317600
+47,Jewett Brook,6,Barren,7,25,22500
+48,Jewett Brook,6,Urban-Open,8,3431,3087900
+49,Mill River,7,Urban,1,6401,5760900
+50,Mill River,7,Agriculture,2,30204,27183600
+51,Mill River,7,Brush,3,1028,925200
+52,Mill River,7,Forest,4,25451,22905900
+53,Mill River,7,Water,5,274,246600
+54,Mill River,7,Wetland,6,494,444600
+55,Mill River,7,Barren,7,34,30600
+56,Mill River,7,Urban-Open,8,2429,2186100
+57,Lamoille River,8,Urban,1,107180,96462000
+58,Lamoille River,8,Agriculture,2,240298,216268200
+59,Lamoille River,8,Brush,3,49374,44436600
+60,Lamoille River,8,Forest,4,1570842,1413757800
+61,Lamoille River,8,Water,5,23147,20832300
+62,Lamoille River,8,Wetland,6,22959,20663100
+63,Lamoille River,8,Barren,7,3081,2772900
+64,Lamoille River,8,Urban-Open,8,64325,57892500
+65,Winooski River,9,Urban,1,220672,198604800
+66,Winooski River,9,Agriculture,2,220233,198209700
+67,Winooski River,9,Brush,3,82818,74536200
+68,Winooski River,9,Forest,4,2343291,2108961900
+69,Winooski River,9,Water,5,23949,21554100
+70,Winooski River,9,Wetland,6,23302,20971800
+71,Winooski River,9,Barren,7,7487,6738300
+72,Winooski River,9,Urban-Open,8,138487,124638300
+73,Great Chazy River,10,Urban,1,35345,31810500
+74,Great Chazy River,10,Agriculture,2,137977,124179300
+75,Great Chazy River,10,Brush,3,51056,45950400
+76,Great Chazy River,10,Forest,4,590845,531760500
+77,Great Chazy River,10,Water,5,12372,11134800
+78,Great Chazy River,10,Wetland,6,19910,17919000
+79,Great Chazy River,10,Barren,7,272,244800
+80,Great Chazy River,10,Urban-Open,8,12417,11175300
+81,Little Chazy River,11,Urban,1,8026,7223400
+82,Little Chazy River,11,Agriculture,2,30802,27721800
+83,Little Chazy River,11,Brush,3,17741,15966900
+84,Little Chazy River,11,Forest,4,90104,81093600
+85,Little Chazy River,11,Water,5,853,767700
+86,Little Chazy River,11,Wetland,6,4607,4146300
+87,Little Chazy River,11,Barren,7,179,161100
+88,Little Chazy River,11,Urban-Open,8,3418,3076200
+89,Saranac River,12,Urban,1,69110,62199000
+90,Saranac River,12,Agriculture,2,23854,21468600
+91,Saranac River,12,Brush,3,45030,40527000
+92,Saranac River,12,Forest,4,1426241,1283616900
+93,Saranac River,12,Water,5,117199,105479100
+94,Saranac River,12,Wetland,6,55929,50336100
+95,Saranac River,12,Barren,7,408,367200
+96,Saranac River,12,Urban-Open,8,24428,21985200
+97,Salmon River,13,Urban,1,12421,11178900
+98,Salmon River,13,Agriculture,2,12636,11372400
+99,Salmon River,13,Brush,3,9004,8103600
+100,Salmon River,13,Forest,4,151050,135945000
+101,Salmon River,13,Water,5,1115,1003500
+102,Salmon River,13,Wetland,6,3047,2742300
+103,Salmon River,13,Barren,7,21,18900
+104,Salmon River,13,Urban-Open,8,5206,4685400
+105,Little Ausable River,14,Urban,1,12710,11439000
+106,Little Ausable River,14,Agriculture,2,30826,27743400
+107,Little Ausable River,14,Brush,3,10557,9501300
+108,Little Ausable River,14,Forest,4,152868,137581200
+109,Little Ausable River,14,Water,5,525,472500
+110,Little Ausable River,14,Wetland,6,2586,2327400
+111,Little Ausable River,14,Barren,7,3,2700
+112,Little Ausable River,14,Urban-Open,8,4207,3786300
+113,Ausable River,15,Urban,1,52290,47061000
+114,Ausable River,15,Agriculture,2,26272,23644800
+115,Ausable River,15,Brush,3,21808,19627200
+116,Ausable River,15,Forest,4,1313505,1182154500
+117,Ausable River,15,Water,5,29627,26664300
+118,Ausable River,15,Wetland,6,14306,12875400
+119,Ausable River,15,Barren,7,1506,1355400
+120,Ausable River,15,Urban-Open,8,14124,12711600
+121,Bouquet River,16,Urban,1,30426,27383400
+122,Bouquet River,16,Agriculture,2,43292,38962800
+123,Bouquet River,16,Brush,3,5967,5370300
+124,Bouquet River,16,Forest,4,689486,620537400
+125,Bouquet River,16,Water,5,7238,6514200
+126,Bouquet River,16,Wetland,6,4658,4192200
+127,Bouquet River,16,Barren,7,1565,1408500
+128,Bouquet River,16,Urban-Open,8,6036,5432400
+129,Putnam Creek,17,Urban,1,6015,5413500
+130,Putnam Creek,17,Agriculture,2,5517,4965300
+131,Putnam Creek,17,Brush,3,1240,1116000
+132,Putnam Creek,17,Forest,4,155005,139504500
+133,Putnam Creek,17,Water,5,4391,3951900
+134,Putnam Creek,17,Wetland,6,3146,2831400
+135,Putnam Creek,17,Barren,7,552,496800
+136,Putnam Creek,17,Urban-Open,8,1890,1701000
+137,Mettawee River,18,Urban,1,77637,69873300
+138,Mettawee River,18,Agriculture,2,291563,262406700
+139,Mettawee River,18,Brush,3,65349,58814100
+140,Mettawee River,18,Forest,4,719394,647454600
+141,Mettawee River,18,Water,5,15586,14027400
+142,Mettawee River,18,Wetland,6,17564,15807600
+143,Mettawee River,18,Barren,7,308,277200
+144,Mettawee River,18,Urban-Open,8,27979,25181100
+145,Poultney River,19,Urban,1,39359,35423100
+146,Poultney River,19,Agriculture,2,117756,105980400
+147,Poultney River,19,Brush,3,39438,35494200
+148,Poultney River,19,Forest,4,497289,447560100
+149,Poultney River,19,Water,5,21719,19547100
+150,Poultney River,19,Wetland,6,15814,14232600
+151,Poultney River,19,Barren,7,368,331200
+152,Poultney River,19,Urban-Open,8,21284,19155600
