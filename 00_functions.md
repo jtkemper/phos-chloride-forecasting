@@ -207,3 +207,30 @@ all_comid_getter <- function(tributary = NULL,
 
   } 
 ```
+
+## Pivot NHD Chars
+
+This is a short function that basically just pivots the dataframe
+retuned by nhdTools::get_catchment_characteristics into wide format
+
+``` r
+pivot_nhd_chars_wide <- function(nhd_char_df = NULL,
+                                 comids_df = NULL){
+  
+  pivoted_df <- nhd_char_df %>%
+    as_tibble() %>%
+    dplyr::select(!percent_nodata) %>%
+    mutate(characteristic_id = tolower(characteristic_id)) %>%
+    pivot_wider(names_from = characteristic_id,
+                values_from = characteristic_value) %>%
+    inner_join(comids_df, .,
+             by = "comid") %>%
+      dplyr::select(!comid)
+    
+
+  
+  return(pivoted_df)
+  
+  
+}
+```

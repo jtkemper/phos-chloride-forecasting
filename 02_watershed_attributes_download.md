@@ -40,84 +40,16 @@ make predictions in individual watersheds
 ``` r
 ### Data mgmt 
 require(tidyverse)
-```
-
-    ## Loading required package: tidyverse
-
-    ## Warning: package 'ggplot2' was built under R version 4.3.2
-
-    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-    ## ✔ dplyr     1.1.2     ✔ readr     2.1.4
-    ## ✔ forcats   1.0.0     ✔ stringr   1.5.0
-    ## ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
-    ## ✔ lubridate 1.9.2     ✔ tidyr     1.3.0
-    ## ✔ purrr     1.0.1
-
-    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-    ## ✖ dplyr::filter() masks stats::filter()
-    ## ✖ dplyr::lag()    masks stats::lag()
-    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-
-``` r
 require(tsibble)
-```
 
-    ## Loading required package: tsibble
-    ## 
-    ## Attaching package: 'tsibble'
-    ## 
-    ## The following object is masked from 'package:lubridate':
-    ## 
-    ##     interval
-    ## 
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, union
-
-``` r
 ### Hydrography & watershed characteristics
 require(streamstats)
-```
-
-    ## Loading required package: streamstats
-    ## The legacy packages maptools, rgdal, and rgeos, underpinning the sp package,
-    ## which was just loaded, will retire in October 2023.
-    ## Please refer to R-spatial evolution reports for details, especially
-    ## https://r-spatial.org/r/2023/05/15/evolution4.html.
-    ## It may be desirable to make the sf package available;
-    ## package maintainers should consider adding sf to Suggests:.
-    ## The sp package is now running under evolution status 2
-    ##      (status 2 uses the sf package in place of rgdal)
-    ## Please note that rgdal will be retired during October 2023,
-    ## plan transition to sf/stars/terra functions using GDAL and PROJ
-    ## at your earliest convenience.
-    ## See https://r-spatial.org/r/2023/05/15/evolution4.html and https://github.com/r-spatial/evolution
-    ## rgdal: version: 1.6-7, (SVN revision 1203)
-    ## Geospatial Data Abstraction Library extensions to R successfully loaded
-    ## Loaded GDAL runtime: GDAL 3.6.2, released 2023/01/02
-    ## Path to GDAL shared files: C:/Users/jkemper/AppData/Local/R/win-library/4.3/rgdal/gdal
-    ##  GDAL does not use iconv for recoding strings.
-    ## GDAL binary built with GEOS: TRUE 
-    ## Loaded PROJ runtime: Rel. 9.2.0, March 1st, 2023, [PJ_VERSION: 920]
-    ## Path to PROJ shared files: C:/Users/jkemper/AppData/Local/R/win-library/4.3/rgdal/proj
-    ## PROJ CDN enabled: FALSE
-    ## Linking to sp version:1.6-1
-    ## To mute warnings of possible GDAL/OSR exportToProj4() degradation,
-    ## use options("rgdal_show_exportToProj4_warnings"="none") before loading sp or rgdal.
-
-``` r
 require(nhdplusTools)
-```
+require(dataRetrieval)
 
-    ## Loading required package: nhdplusTools
-
-``` r
 ### Spatial 
 require(sf)
 ```
-
-    ## Loading required package: sf
-    ## Linking to GEOS 3.11.2, GDAL 3.6.2, PROJ 9.2.0; sf_use_s2() is TRUE
 
 ### Load prior scripts
 
@@ -172,7 +104,8 @@ for(i in 1:length(start_points2)) {
 start_comid_df <- tibble(start_comid = unlist(comid_start)) %>%
   bind_cols(start_points, .) %>%
   as_tibble() %>%
-  dplyr::select(!geometry)
+  dplyr::select(!geometry) %>%
+  rename(comid = start_comid)
 ```
 
 ### Get all NHD Medium-Res comids in a particular basin
@@ -191,7 +124,9 @@ comids_by_basin <- map2(start_comid_df$tributary,
 
 comids_by_basin <- comids_by_basin %>%
   bind_rows() %>%
-  unnest(data)
+  unnest(data) %>%
+  rename(comid = nhdplus_comid) %>%
+  mutate(comid = as.integer(comid))
 ```
 
 ### Find outlet COMIDs for NHD high-resolution
@@ -328,7 +263,7 @@ final_streamstat_features <- all_streamstat_features %>%
   mutate(code = tolower(code)) %>%
   pivot_wider(names_from = code, values_from = value) %>%
   mutate(drnarea_km2 = drnarea*2.58999) %>% ### transform from mi^2 to km^2
-  dplyr::select(!drnarea)
+  dplyr::select(tributary, drnarea_km2, el1200)
 ```
 
 # Get land use attributes
@@ -395,6 +330,16 @@ flowline_stats_hr <- map2(start_comid_hr$tributary,
 flow_length_hr <- bind_cols(start_comid_hr,
                             flowline_length_km = map_dbl(flowline_stats_hr, 
                                                          1))
+#### Get stream relief
+#### Elevation in NHD HR is in centimeters, so we must convert
+
+relief_m <-  bind_cols(start_comid_hr,
+                            max_elev = map_dbl(flowline_stats_hr, 
+                                                         5)/100,
+                       min_elev = map_dbl(flowline_stats_hr,6)/100) %>%
+  mutate(relief = max_elev - min_elev) %>%
+  rename(stream_relief_m = relief) %>%
+  dplyr::select(tributary, stream_relief_m)
 
 #### Extract the percentage (by length) of each stream order 
 
@@ -432,6 +377,7 @@ basin_drainage_density <- full_join(flow_length_hr %>%
                                     by = "tributary") %>%
   mutate(drain_density_km_km2 = flowline_length_km/drnarea_km2) %>%
   dplyr::select(tributary, drain_density_km_km2)
+
 
 
 #### And now get the length of the mainstem for each tributary
@@ -535,17 +481,589 @@ flashiness <- flow_ts %>%
   arrange(dateTime, .by_group = TRUE) %>%
   mutate(abs_delta_daily_q = abs(Flow - lag(Flow))) %>%
   drop_na() %>%
-  #dplyr::group_by(waterYear, site_no) %>%
   summarise(path_length = sum(abs_delta_daily_q, na.rm = TRUE),
             total_q = sum(Flow, na.rm = TRUE)) %>%
   mutate(rb_flashiness = path_length/total_q) %>%
-  #dplyr::group_by(site_no) %>%
-  #summarise(mean_rb_flashiness = mean(rb_flashiness)) %>%
   inner_join(., lc_sites_metadata_all %>%
                dplyr::select(tributary, site_no),
              by = "site_no") %>%
-  rename(name = tributary) %>%
-  dplyr::select(name, 
+  dplyr::select(tributary, 
                 rb_flashiness
                 )
+```
+
+### Flow anomaly
+
+This is from Underwood et al., 2018, and is essentially how much flow
+fluctuates on average at an annual scale. It is the average ratio of
+mean annual peak flow to mean annual mean flow.
+
+``` r
+#### First calcualte the average annual daily flow
+
+mean_flows <- flow_data %>%
+  dplyr::group_by(site_no, waterYear) %>%
+  summarise(mean_annual_flow = mean(Flow)) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(site_no) %>%
+  summarise(mean_annual_mean = mean(mean_annual_flow)) %>%
+  arrange(site_no) %>%
+  dplyr::ungroup()
+
+#### Then, get all peak flows for each station
+
+annual_peaks <- dataRetrieval::readNWISpeak(lc_sites_metadata_all$site_no, 
+                            startDate = "1990-10-01",
+                            endDate = "2022-09-30") 
+
+mean_annual_peaks <- annual_peaks %>%
+  dplyr::group_by(site_no) %>%
+  summarise(mean_annual_peak_flow = mean(peak_va, na.rm = TRUE)) %>%
+  dplyr::ungroup()
+
+#### Then calculate the flow anomaly by joining the two dataframes
+#### And taking the ratio of mean annual peak to mean annual mean flow
+
+flow_anomaly <- full_join(mean_flows, mean_annual_peaks, by = "site_no") %>%
+  inner_join(., lc_sites_metadata_all %>%
+               dplyr::select(tributary, site_no),
+             by = "site_no") %>%
+  dplyr::mutate(peak_flow_anom = mean_annual_peak_flow/mean_annual_mean) %>%
+ dplyr::select(tributary, peak_flow_anom)
+```
+
+# Get tile drainage
+
+Here, we utilize a dataset constructed by Valayamkunnath et al., 2020
+(<https://doi.org/10.1038/s41597-020-00596-x>), the metadata for which
+can be found at <https://doi.org/10.6084/m9.figshare.12668234> and the
+data for which can be found here:
+<https://figshare.com/articles/dataset/AgTile-US/11825742>. This a layer
+that maps subsurface tile drainage at 30-m resolution across CONUS. A
+large body of prior research has shown that the extent of tile drainage
+within a watershed has a notable impact on hydrological, nutrient, and
+various other constituent dynamics. We have trimmed this data to only
+our watersheds of interest in ArcGIS. We import that trimmed data set
+here, and then calculate tile drainage as a percent of watershed area.
+
+``` r
+#### Read in the .csv file 
+tile <- read_csv(here("data/percent_tile.csv")) %>%
+  as_tibble() %>%
+  rename_all(~tolower(.)) %>%
+  rename(area_m2 = area) %>%
+  mutate(area_km2 = area_m2 * 1E-6)
+
+#### Join to StreamStats data to get watershed area
+#### And calculate tile drainage as a percentage of watershed area
+
+tile_percent_by_basin <- tile %>%
+  mutate(value = ifelse(value == 1, "tile", "no_tile")) %>%
+  dplyr::group_by(tributary) %>%
+  filter(value == "tile") %>%
+  dplyr::select(tributary, area_km2) %>%
+  rename(area_tile_drain_km2 = area_km2) %>%
+  inner_join(., final_streamstat_features,
+             by = "tributary") %>%
+  mutate(pct_drained_by_tile = area_tile_drain_km2/drnarea_km2*100) %>%
+  dplyr::select(tributary, pct_drained_by_tile)
+```
+
+# Get various other watershed attributes
+
+For the rest of these, we will be relying on Wieczorek et al., 2018
+(<https://doi.org/10.5066/F7765D7V>.), a USGS dataset that relates
+various watershed attributues to each COMID within the NHD medium
+resolution. This dataset has various values for each attributue of
+interest: cat_xxx and tot_xxx, which, respective, are the value of the
+attribute of interest AT the flowline (COMID) of interest and the
+average value of the attribute of interest for all flowlines upstream of
+(and including) the flowline (COMID) of interest
+
+This dataset is accessible via R, but we must know the name of the
+attributes in which we are interested. Attribute names can be found
+Variable names in the metadata_table.tsv on ScienceBase
+(<https://www.sciencebase.gov/catalog/item/5669a79ee4b08895842a1d47>).
+In general, we are interested in the tot_xxx attributes, but sometimes
+we want the cat_xxx data for an entire watershed, so we can calculate
+medians and other distribution data.
+
+This section is generally organized by groups of related features.
+
+### Hydrology
+
+#### Runoff and groundwater recharge
+
+Infiltration-Excess Overland Flow, Saturation-Excess Overland Flow,
+Average Annual Runoff, RUSLE R-factor, Topographic Wetness Index,
+Groundwater Recharge, Contact Time
+
+``` r
+### Infiltration-Excess Overland Flow 
+#### Values represent the mean percentage of total streamflow that is comprised
+#### of infiltration-excess overland flow
+#### More here: https://www.sciencebase.gov/catalog/item/56f974e2e4b0a6037df06b55
+
+### Saturation-Excess Overland Flow
+#### Values represent the mean % of total streamflow that is derived from
+#### saturation-excess overland flow
+#### More here: https://www.sciencebase.gov/catalog/item/56f97acbe4b0a6037df06b6a
+
+### Estimated Average annual runoff 1971-2000
+#### Measures the average annual runoff (in mm) based on flow measured at streamgages 
+#### More here: https://www.sciencebase.gov/catalog/item/578f8ad8e4b0ad6235cf6e43
+
+### RUSLE R-factor
+#### This is the mean annual average for the rainfall and runoff factor in the
+#### Revised Universal Soil Loss Equation (RUSLE) as derived from PRISM data
+#### Units are ft-ton force-inch/acre-hour
+#### More here: https://www.sciencebase.gov/catalog/item/573b6028e4b0dae0d5e3ae16
+
+### Topographic Wetness Index (TWI)
+#### This is a steady used to predict areas susceptible to saturated land surfaces 
+#### and areas that carry the potential to produce overland flow
+#### Units are ln(m) 
+#### Areas with higher topographic wetness index values are likely to be wetter relative 
+#### to areas with lower values
+#### Smaller values of the TWI indicate less potential for development of ponding
+#### Values range range from less than 1 (dry cells) to greater than 20 (wet cells).
+#### More here: https://www.sciencebase.gov/catalog/item/56f97be4e4b0a6037df06b70
+
+### Groundwater Recharge
+#### 30 year (1951-1980) mean annual natural groundwater recharge in mm/yr
+#### More here: https://www.sciencebase.gov/catalog/item/56f97577e4b0a6037df06b5a
+
+### Contact Time
+#### Time it takes for water to drain along subsurface flows paths to the stream
+#### Derived from methods outlined in Wolock et al (1997)
+#### Contact time is computed from basin topography, soil porosity, and 
+#### soil hydraulic conductivity.
+#### More here: https://www.sciencebase.gov/catalog/item/56f96fc5e4b0a6037df06b12
+
+### Water Table Elevation
+#### Average depth to the water table relative to the land surface
+#### More here: https://www.sciencebase.gov/catalog/item/56f97456e4b0a6037df06b50
+
+##### Make a list of variables to retrieve
+
+run_gw_chars <- c("TOT_IEOF", ### Infiltration-Excess Overland Flow
+                  "TOT_SATOF", ### Saturation-Excess Overland Flow
+                  "TOT_RUN7100", ### Runoff from gages
+                  "TOT_RF7100", ### RUSLE R-factor 
+                  "TOT_TWI", ### Topographic-Wetness Index
+                  "TOT_RECHG", ### Groundwater Recharge
+                  "TOT_CONTACT", ### Contact time
+                  "TOT_EWT" ### Water table elevation
+                  )
+
+##### Retrieve the variables 
+
+run_gw <- get_catchment_characteristics(run_gw_chars, 
+                                        start_comid_df$comid)
+
+##### Format characteristic table in a wide format
+##### And join to table with tributary names
+
+run_gw <- run_gw %>%
+  pivot_nhd_chars_wide(comids_df = start_comid_df) 
+```
+
+#### Snow
+
+Mean Annual Snow
+
+``` r
+#### Mean annual snow as a percent of total precip, 1905-2002
+#### More here: https://www.sciencebase.gov/catalog/item/57053dc5e4b0d4e2b756c117
+
+##### Retrieve the variables 
+
+snow <- get_catchment_characteristics("TOT_PRSNOW", 
+                                        start_comid_df$comid)
+
+##### Format the data (using our custom function)
+
+snow <- snow %>%
+  pivot_nhd_chars_wide(comids_df = start_comid_df) 
+```
+
+### Hydrography & Geomorphology
+
+#### Average Distance to Stream
+
+``` r
+### The average distance to a flow line (stream network) from any given land cell
+### for each NHDPlus V2 catchment. More about how this was derived can be found here: 
+### https://www.sciencebase.gov/catalog/item/5d1a1dfbe4b0941bde6025d2
+
+##### For whatever reason, this is not accessible directly from R
+##### So we will have to download the data file from the above link
+##### And import manually
+
+##### Retrieve distance to stream measure 
+dist_to_stream <- read_csv(here("data/nhd_characteristics/DIST_TO_ST.txt"))
+
+##### Join to table with tributary names
+##### And format the table as we want
+dist_to_stream <- dist_to_stream %>%
+  as_tibble() %>%
+  rename_all(~tolower(.)) %>%
+  dplyr::select(!nodata) %>%
+  inner_join(start_comid_df, .,
+             by = "comid") %>%
+  dplyr::select(!comid)
+```
+
+#### Sinuosity
+
+``` r
+#### Sinuosity was calculated for each reach 
+#### And no accumulation was done
+#### Therefore, we need to approach this calculation a bit different
+#### As we are interested in watershed-scale sinuousity rather than just
+#### at the outlet reach
+#### More here: https://www.sciencebase.gov/catalog/item/57976a0ce4b021cadec97890
+
+##### First, download the sinuousity for all COMIDs
+
+sinuosity <- get_catchment_characteristics("CAT_sinuosity", 
+                                        comids_by_basin$comid)
+
+##### Then, pivot the dataframe to wide format and 
+##### calculate the mean sinuosity within each tributary watershed
+
+sinuosity <- sinuosity %>%
+  pivot_nhd_chars_wide(comids_df = comids_by_basin) %>%
+  dplyr::group_by(tributary) %>%
+  summarise(mean_sin = mean(cat_sinuosity))
+```
+
+#### Bankfull width and depth
+
+``` r
+#### An estimation of bankfull width based regression equations in 
+#### Bieger et al. 2015 (https://doi.org/10.1111/jawr.12282)
+#### More here: https://www.sciencebase.gov/catalog/item/5cf02bdae4b0b51330e22b85
+
+#### For some reason these are not accessible via the nhdTools interface
+#### So we will have to download manually from the above link
+#### These are also not "accumulated" so we will have to manually calculate
+#### the mean bankfull width for each catchment
+
+##### Get the hydraulic geometry for CONUS from file
+
+hyd_geometry <- read_csv(here("data/nhd_characteristics/BANKFULL_CONUS.txt"))
+
+##### Then calculate the mean hydraulic geometry for each watershed 
+
+hyd_geometry <- hyd_geometry %>%
+  as_tibble() %>%
+  rename_all(~tolower(.)) %>%
+  filter(bankfull_width != -9999) %>%
+  dplyr::select(comid, bankfull_width, bankfull_depth) %>%
+  inner_join(., comids_by_basin %>%
+               mutate(nhdplus_comid = as.integer(nhdplus_comid)),
+             join_by(comid == nhdplus_comid)) %>%
+  dplyr::group_by(tributary) %>%
+  summarise(mean_bf_width = mean(bankfull_width),
+            mean_bf_depth = mean(bankfull_depth))
+```
+
+### Geology & Soils
+
+#### Soil characteristics
+
+Soil Hydrologic Groups, Soil Phosphorus
+
+``` r
+#### Download data regarding the percentage of soils 
+#### of Hydrologic Group A and B, which are well to moderately-drained soils with high
+#### infiltration capacity and typically of coarse to moderately coarse texture
+#### (sands and gravel)
+#### These data are derived from the SSURGO/STATSGO soils database compiled by the 
+#### US Dept. of Agriculture
+#### Units are in percent
+#### More here: https://www.sciencebase.gov/catalog/item/5728d93be4b0b13d3918a99f
+
+#### Soil phosphorus
+#### Estimated distribution of phosphorus in soil A and C horizons
+#### From the source publication Terziotti, 2019 
+#### More here: https://www.sciencebase.gov/catalog/item/58580f18e4b0e40e53c237a5
+
+soils_vars <- c("TOT_HGA", ### Hyd. Group A  
+                "TOT_HGB", ### Hyd Group B
+                "TOT_SOILS_A_P", ### Phos in Group A
+                "TOT_SOILS_C_P" ### Phos is Group C
+                )
+
+##### Get the data
+
+soils <- get_catchment_characteristics(varname = soils_vars,
+                                          start_comid_df$comid)
+
+
+##### Pivot wider and combine into one variable that represents
+##### the extent of good drainage in a basin
+
+soils <- soils %>%
+  pivot_nhd_chars_wide(comids_df = start_comid_df) %>%
+  mutate(pct_ab_soils = tot_hga + tot_hgb) %>%
+  mutate(tot_p_ac_soils = tot_soils_a_p + tot_soils_c_p) %>%
+  dplyr::select(tributary, pct_ab_soils, tot_p_ac_soils) %>%
+  inner_join(., final_streamstat_features %>%
+               dplyr::select(!el1200),
+             by= "tributary") %>%
+  mutate(pct_p_ac_soils = tot_p_ac_soils/drnarea_km2) %>%
+  dplyr::select(tributary, pct_ab_soils, pct_p_ac_soils)
+```
+
+#### Surficial Geology and Bedrock Geology
+
+``` r
+#### Surficial Geology compiled from the USGS map database for surficial 
+#### materials in the United States (https://pubs.usgs.gov/ds/425/)
+#### More here: https://www.sciencebase.gov/catalog/item/57d8529ee4b090824ff9ac91
+#### Bedrock Geology compiled from the generalized geologic map of the United States
+#### (https://pubs.usgs.gov/atlas/geologic/)
+#### More here: https://www.sciencebase.gov/catalog/item/5703f6b5e4b0328dcb826d06
+#### Units are all in percent
+
+#### There are many categories of both surficial and bedrock, 
+#### not all of which are present in every watershed. 
+#### Unfortunately, they are all under different variable names
+#### with a slightly esoteric naming& numbering scheme, and so we must know beforehand
+#### all the variable names to download directly from R using the nhdTools functions
+#### This is, in short, a bit of a pain
+#### To this most efficiently, it makes sense to find all the variable names
+#### Within the metadata
+#### Luckily, they all contain the string "SOLLER" (surficial) or "BUSHREED" (bedrock)
+
+
+##### Read in the metadata file
+
+nhd_chars_metadata <- read_csv(here("data/nhd_characteristics/metadata_table.csv"))
+
+##### Extract the relevant variable names
+##### Which here are those relating to Soller surficial geology
+##### And those relating to Reed & Bush bedrock geology
+
+surf_vars <- nhd_chars_metadata %>%
+  filter(str_detect(ID, "TOT_SOLLER"))
+
+bedrock_vars <- nhd_chars_metadata %>%
+  filter(str_detect(ID, "TOT_BUSHREED"))
+
+##### Now download the characteristics for our watersheds 
+
+surf_geology <- get_catchment_characteristics(surf_vars$ID, 
+                                              start_comid_df$comid)
+
+##### Make wider and remove types not found in any watershed in
+##### the Lake Champlain Basin
+
+surf_geology <- surf_geology %>%
+  pivot_nhd_chars_wide(comids_df = start_comid_df) %>%
+  dplyr::select(tributary,
+                where(~is.numeric(.) && 
+                        sum(.) != 0) 
+                ) %>% ### Remove types that aren't present anywhere
+  dplyr::select(!tot_soller_999) ### Remove water, which we already have from land cover 
+
+
+##### Now download bedrock geology
+
+bedrock_geology <- get_catchment_characteristics(bedrock_vars$ID, 
+                                        start_comid_df$comid)
+
+##### Make wider and remove types not found in any watershed in
+##### the Lake Champlain Basin
+
+bedrock_geology <- bedrock_geology %>%
+  pivot_nhd_chars_wide(comids_df = start_comid_df) %>%
+  dplyr::select(tributary,
+                where(~is.numeric(.) && 
+                        sum(.) != 0) 
+                ) %>% ### Remove types that aren't present anywhere
+  dplyr::select(!tot_bushreed_8) ### Remove water, which we already have from land cover 
+```
+
+#### Other Geologic Attributes
+
+Lithologic Hydraulic Conductivity, Geologic Phosphorus
+
+``` r
+#### Get data related to permeability (really, lithological hydraulic conductivity)
+#### From Olson and Hawkins, 2014
+#### Units are in micrometers/second
+#### More here: https://www.sciencebase.gov/catalog/item/5703e35be4b0328dcb825562
+
+#### Also get data related to loading of phosphorus from geologic materials
+#### Source data is from Nardi, 2014
+#### More here: https://www.sciencebase.gov/catalog/item/5b297a25e4b059207627a3ad
+#### Data are in ppm
+
+
+
+##### Get data
+
+other_geol <- get_catchment_characteristics(varname = c("TOT_OLSON_PERM",
+                                                        "TOT_PMAP"),
+                                          start_comid_df$comid)
+
+##### Put into good format
+other_geol <- other_geol %>%
+  pivot_nhd_chars_wide(comids_df = start_comid_df) %>%
+  inner_join(., final_streamstat_features %>%
+               dplyr::select(!el1200),
+             by= "tributary") %>%
+  mutate(tot_pmap_pct = tot_pmap/drnarea_km2) %>% ### Normalize phos loading by watershed area
+  dplyr::select(tributary, tot_olson_perm, tot_pmap_pct)
+```
+
+### Topography
+
+#### Stream & Basin Slope
+
+``` r
+#### This is slope of the streams in a given watershed AND
+#### This is the slope of the entire basin (not just the streams)
+#### More here: https://www.sciencebase.gov/catalog/item/57976a0ce4b021cadec97890
+
+##### Get data
+
+topo <- get_catchment_characteristics(c("TOT_BASIN_SLOPE",
+                                             "TOT_STREAM_SLOPE"),
+                                        start_comid_df$comid)
+
+
+##### Format 
+
+topo <- topo %>%
+    pivot_nhd_chars_wide(comids_df = start_comid_df)
+```
+
+### Anthropogenic factors and modifications
+
+Fertilizer application, septic systems, wastewater, dams
+
+``` r
+### Phosphorus Fertilzer Application 1997
+#### Source data is a 1997 USGS publication by Ruddy et al
+#### Units are kg/km2
+#### More here: https://www.sciencebase.gov/catalog/item/57053749e4b0d4e2b756b969
+
+### Phosphorus Fertilizer & Manure Application 2012
+#### Source data is a 2012 USGS publication for manure (Gronberg et al., 2017)
+#### And a 2017 USGS publication for phos from fertilizer (Brakebill et al., 2017)
+#### Units are in kilograms
+#### More here: https://www.sciencebase.gov/catalog/item/59038bc8e4b0e862d2311aef
+
+### Dams 
+#### Source data is from the Army Corps of Engineers
+#### Data are both the number of major * minor dams and the storage capacity
+#### Per USGS metadata, tot_ndams_2010 = Accumulated number of dams based on total upstream accumulation.
+#### TOT_MAJOR: Accumulate number of major dams based on total upstream accumulation.
+#### TOT_NORM_STORAGE: accumulated normal dam storage (in acre-feet) defined as the total storage space 
+#### in a reservoir below the normal retention level
+
+### Wastewater
+#### The number and desnity of major National Pollutant Discharge Elimination System sites
+#### Source data is from the EPA
+#### More here: https://www.sciencebase.gov/catalog/item/57c9d89ce4b0f2f0cec192da
+
+### Population Density
+#### Data from block-level population density rasters created by the Census Bureau
+#### We want population density for 2010, because it hasn't changed much in this basin
+#### Units are persons/km2
+#### More here: https://www.sciencebase.gov/catalog/item/5728f746e4b0b13d3918aa1e
+#### We want both mean upstream population and population at the outlet
+#### And then we will also calculate maximum upstream population
+
+### Road density
+#### Data is for road density by road type
+#### We are interested in the density of roads of all types 
+#### More here: https://www.sciencebase.gov/catalog/item/57976a0ce4b021cadec97890
+
+##### Declare the variables we are interested in
+
+anthro_vars <- c("TOT_P97", ### Phos 1997
+                 "TOT_TP2012", ### Phos 2012
+                 "TOT_NDAMS2010", ### Number of dams 2010
+                 "TOT_NORM_STORAGE2010", ### Reservoir storage 2010
+                 "TOT_NPDES_MAJ", ### Wastewater outlets
+                 "TOT_POPDENS10", ### Pop density
+                 "CAT_POPDENS10", ### Pop density
+                 "TOT_TOTAL_ROAD_DENS" ### Road density 
+                 )
+
+##### Get the data
+
+anthro_chars <- get_catchment_characteristics(anthro_vars, 
+                                        start_comid_df$comid)
+
+##### Format the data
+
+anthro_chars <- anthro_chars %>%
+    pivot_nhd_chars_wide(comids_df = start_comid_df)
+
+
+##### Now also get population data for every COMID in each watershed
+max_pop_dens <- get_catchment_characteristics("CAT_POPDENS10", 
+                                        comids_by_basin$comid)
+
+##### And then calculate maximum population density in each watershed
+max_pop_dens <- max_pop_dens %>%
+  pivot_nhd_chars_wide(comids_df = comids_by_basin) %>%
+  dplyr::group_by(tributary) %>%
+  summarise(max_popdens10 = max(cat_popdens10))
+```
+
+# Combine together
+
+Combine all the watershed characteristics we have calculated/acquired
+into one dataframe
+
+``` r
+### Do it
+
+watershed_chars <- full_join(final_streamstat_features, lulc_all,
+                             by = "tributary") %>%
+  full_join(., basin_drainage_density,
+            by = "tributary") %>%
+  full_join(., pct_by_type,
+            by = "tributary") %>%
+  full_join(., pct_orders,
+            by = "tributary") %>%
+  full_join(., relief_m,
+            by = "tributary") %>%
+  full_join(., hacks,
+            by = "tributary") %>%
+  full_join(., flashiness,
+            by = "tributary") %>%
+  full_join(., flow_anomaly,
+            by = "tributary") %>%
+  full_join(., tile_percent_by_basin,
+            by = "tributary") %>%
+  full_join(., run_gw,
+            by = "tributary") %>%
+  full_join(., dist_to_stream,
+            by = "tributary") %>%
+  full_join(., sinuosity,
+            by = "tributary") %>%
+  full_join(., hyd_geometry,
+            by = "tributary") %>%
+  full_join(., soils,
+            by = "tributary") %>%
+  full_join(., surf_geology,
+            by = "tributary") %>%
+  full_join(., bedrock_geology,
+            by = "tributary") %>%
+  full_join(., other_geol,
+            by = "tributary") %>%
+  full_join(., topo,
+            by = "tributary") %>%
+  full_join(., anthro_chars,
+            by = "tributary") %>%
+  full_join(., max_pop_dens,
+            by = "tributary") 
 ```
