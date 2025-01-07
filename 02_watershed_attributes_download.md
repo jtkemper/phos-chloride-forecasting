@@ -46,6 +46,7 @@ require(tsibble)
 require(streamstats)
 require(nhdplusTools)
 require(dataRetrieval)
+require(sbtools)
 
 ### Spatial 
 require(sf)
@@ -494,8 +495,9 @@ flashiness <- flow_ts %>%
 
 ### Flow anomaly
 
-This is from Underwood et al., 2018, and is essentially how much flow
-fluctuates on average at an annual scale. It is the average ratio of
+This is from Underwood et al., 2018 (
+<https://doi.org/10.1002/2017WR021353>), and is representative of the
+degree to which flow fluctuates at an annual scale. It is the ratio of
 mean annual peak flow to mean annual mean flow.
 
 ``` r
@@ -696,12 +698,13 @@ snow <- snow %>%
 ### for each NHDPlus V2 catchment. More about how this was derived can be found here: 
 ### https://www.sciencebase.gov/catalog/item/5d1a1dfbe4b0941bde6025d2
 
-##### For whatever reason, this is not accessible directly from R
-##### So we will have to download the data file from the above link
-##### And import manually
+#### For whatever reason, this is not accessible directly from R
+#### So we will have to download the data file using the ScienceBase API
+#### And the sbtools package
 
-##### Retrieve distance to stream measure 
-dist_to_stream <- read_csv(here("data/nhd_characteristics/DIST_TO_ST.txt"))
+##### To do, use our custom function
+
+dist_to_stream <- read_direct_from_sb(sci_base_id = "5d1a1dfbe4b0941bde6025d2")
 
 ##### Join to table with tributary names
 ##### And format the table as we want
@@ -745,16 +748,17 @@ sinuosity <- sinuosity %>%
 #### Bieger et al. 2015 (https://doi.org/10.1111/jawr.12282)
 #### More here: https://www.sciencebase.gov/catalog/item/5cf02bdae4b0b51330e22b85
 
-#### For some reason these are not accessible via the nhdTools interface
-#### So we will have to download manually from the above link
+#### For whatever reason, this is not accessible directly from R
+#### So we will have to download the data file using the ScienceBase API
 #### These are also not "accumulated" so we will have to manually calculate
 #### the mean bankfull width for each catchment
 
-##### Get the hydraulic geometry for CONUS from file
+##### To do, use our custom function
 
-hyd_geometry <- read_csv(here("data/nhd_characteristics/BANKFULL_CONUS.txt"))
+hyd_geometry <- read_direct_from_sb(sci_base_id = "5cf02bdae4b0b51330e22b85")
 
 ##### Then calculate the mean hydraulic geometry for each watershed 
+##### And reformat the table a bit better
 
 hyd_geometry <- hyd_geometry %>%
   as_tibble() %>%
@@ -762,8 +766,8 @@ hyd_geometry <- hyd_geometry %>%
   filter(bankfull_width != -9999) %>%
   dplyr::select(comid, bankfull_width, bankfull_depth) %>%
   inner_join(., comids_by_basin %>%
-               mutate(nhdplus_comid = as.integer(nhdplus_comid)),
-             join_by(comid == nhdplus_comid)) %>%
+               mutate(comid = as.integer(comid)),
+             by = "comid") %>%
   dplyr::group_by(tributary) %>%
   summarise(mean_bf_width = mean(bankfull_width),
             mean_bf_depth = mean(bankfull_depth))
@@ -838,10 +842,34 @@ soils <- soils %>%
 #### Within the metadata
 #### Luckily, they all contain the string "SOLLER" (surficial) or "BUSHREED" (bedrock)
 
+##### First, we need to download the metadata from ScienceBase
+##### Here: https://www.sciencebase.gov/catalog/item/5669a79ee4b08895842a1d47
 
-##### Read in the metadata file
 
-nhd_chars_metadata <- read_csv(here("data/nhd_characteristics/metadata_table.csv"))
+overall_sb_item <- sbtools::item_get("5669a79ee4b08895842a1d47")
+
+##### We are interested in the metadata, so see all the files associated with this
+##### ScienceBase item and extract the relevant one
+
+for(i in 1:length(overall_sb_item$files)) {
+  
+  print(i)
+  
+  sb_file_names[[i]] <- overall_sb_item$files[[i]]$name 
+  
+}
+
+print(sb_file_names)
+
+##### We can see that sb_file_names[[5]] is the metadata file we want
+##### So let's now download that file and import it to R
+
+nhd_chars_metadata_path <- sbtools::item_file_download(sb_id = x, names = sb_file_names[[5]],
+                                   destinations = file.path(tempdir(), sb_file_names[[5]]),
+                                   overwrite_file = TRUE)
+
+nhd_chars_metadata <- read_tsv(nhd_chars_metadata_path)
+
 
 ##### Extract the relevant variable names
 ##### Which here are those relating to Soller surficial geology
@@ -1024,46 +1052,34 @@ Combine all the watershed characteristics we have calculated/acquired
 into one dataframe
 
 ``` r
-### Do it
+### List all characteristics we've gathered 
 
-watershed_chars <- full_join(final_streamstat_features, lulc_all,
-                             by = "tributary") %>%
-  full_join(., basin_drainage_density,
-            by = "tributary") %>%
-  full_join(., pct_by_type,
-            by = "tributary") %>%
-  full_join(., pct_orders,
-            by = "tributary") %>%
-  full_join(., relief_m,
-            by = "tributary") %>%
-  full_join(., hacks,
-            by = "tributary") %>%
-  full_join(., flashiness,
-            by = "tributary") %>%
-  full_join(., flow_anomaly,
-            by = "tributary") %>%
-  full_join(., tile_percent_by_basin,
-            by = "tributary") %>%
-  full_join(., run_gw,
-            by = "tributary") %>%
-  full_join(., dist_to_stream,
-            by = "tributary") %>%
-  full_join(., sinuosity,
-            by = "tributary") %>%
-  full_join(., hyd_geometry,
-            by = "tributary") %>%
-  full_join(., soils,
-            by = "tributary") %>%
-  full_join(., surf_geology,
-            by = "tributary") %>%
-  full_join(., bedrock_geology,
-            by = "tributary") %>%
-  full_join(., other_geol,
-            by = "tributary") %>%
-  full_join(., topo,
-            by = "tributary") %>%
-  full_join(., anthro_chars,
-            by = "tributary") %>%
-  full_join(., max_pop_dens,
-            by = "tributary") 
+all_chars <- list(final_streamstat_features,
+                  lulc_all,
+                  basin_drainage_density,
+                  pct_by_type,
+                  pct_orders,
+                  relief_m,
+                  hacks,
+                  flashiness,
+                  flow_anomaly,
+                  tile_percent_by_basin,
+                  run_gw,
+                  dist_to_stream,
+                  sinuosity,
+                  hyd_geometry,
+                  soils,
+                  surf_geology,
+                  bedrock_geology,
+                  other_geol,
+                  topo,
+                  anthro_chars,
+                  max_pop_dens)
+
+
+#### Now combine 'em together
+
+watershed_chars <- purrr::reduce(all_chars,
+                                 full_join,
+                                 by = "tributary")
 ```

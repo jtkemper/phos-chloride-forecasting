@@ -219,7 +219,7 @@ pivot_nhd_chars_wide <- function(nhd_char_df = NULL,
   
   pivoted_df <- nhd_char_df %>%
     as_tibble() %>%
-    dplyr::select(!percent_nodata) %>%
+    dplyr::select(!contains("nodata")) %>%
     mutate(characteristic_id = tolower(characteristic_id)) %>%
     pivot_wider(names_from = characteristic_id,
                 values_from = characteristic_value) %>%
@@ -230,6 +230,77 @@ pivot_nhd_chars_wide <- function(nhd_char_df = NULL,
 
   
   return(pivoted_df)
+  
+  
+}
+```
+
+## Read chars directly from ScienceBase
+
+This is a function that reads NHD flowline characteristic data
+(Wieczorek et al., 2018)  
+directly from the ScienceBase API
+
+``` r
+read_direct_from_sb <- function(sci_base_id = NULL) {
+  
+  ##### Print error if we are missing ScienceBase ID
+  
+  if(is.null(sci_base_id)){
+
+    stop("Please enter a ScienceBase ID\n")
+    
+    }
+  
+    ##### To do this, first retrieve ScienceBase item
+    ##### For this we need the ScienceBase ID, which is just the alphanumeric string
+    ##### in the URL for the item of interest
+    
+    sb_item <- sbtools::item_get(sb_id = sci_base_id)
+    
+    ##### Download the file(s) from ScienceBase 
+    
+    sb_file_path <- sbtools::item_file_download(sb_item,
+                                                dest_dir = tempdir(),
+                                                overwrite_file = TRUE)
+    
+    ##### Find only the file with the data in it (this will be a zip file)
+    
+    sb_data_file <- str_subset(sb_file_path, ".zip")
+    
+    ##### Now we want to unzip this file
+    
+    sb_data_file_unz <- unzip(sb_data_file,
+          exdir = dirname(sb_data_file),
+          overwrite = TRUE)
+    
+    ##### Then, check if there are any zipped files in the newly unzipped file
+    ##### And then unzip those
+    ##### We want to do this until no zipped files remain
+    
+    sb_subfiles <- str_subset(sb_data_file_unz, ".zip")
+    
+    while(length(sb_subfiles) > 0) {
+      
+      sb_data_file_unz <- unzip(sb_subfiles,
+                                     exdir = dirname(sb_data_file),
+                                     overwrite = TRUE)
+      
+      sb_subfiles <- str_subset(sb_data_file_unz, ".zip")
+      
+      if(length(sb_subfiles) > 0){cat(crayon::yellow("Repeating"))}
+      
+    }
+    
+    ##### Finally, read in the unzipped data file(s)
+    ##### And retrieve the distance to stream measure
+    
+    sb_actual_data <- read_csv(sb_data_file_unz)
+    ##### And return final data
+    
+    return(sb_actual_data)
+
+  
   
   
 }
