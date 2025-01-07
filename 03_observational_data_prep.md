@@ -9,6 +9,26 @@ This script manipulates and cleans the observational data (discharge,
 water quality) in order to get it reading for model construction. It
 also splits data into training, validation, and testing sets.
 
+**Inputs**
+
+Three dataframes with monitoring data and watershed attributes:
+
+1)  `flow_data` (*from 01_data_discovery_and download*)
+
+2)  `lc_tribs_wq_all` (*from 01_data_discovery_and download*)
+
+3)  `watershed_chars` (*from 02_watershed_attributes_download*)
+
+**Outputs**
+
+1)  Dataframe with observational concentration data and all possible
+    drivers for total phosphorus and chloride (`tp_drivers` &
+    `chlor_drivers`)
+
+2)  Training/validation and testing dataframes for total phosphorus and
+    chloride (`tp_train_valid`, `tp_test` & `chlor_train_valid`,
+    `chlor_test`)
+
 ################################################################################ 
 
 # Housekeeping
