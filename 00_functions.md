@@ -305,3 +305,72 @@ read_direct_from_sb <- function(sci_base_id = NULL) {
   
 }
 ```
+
+## Remove unsplittable features
+
+This function essentially removes features that, in at least one
+cross-validation split, have only one value for all tributaries that are
+“left-in” in the training data. Briefly, this is an issue mostly because
+it biases model training to variables that may serve to “identify” a
+specific basin rather than reflect process
+
+``` r
+remove_unsplittable <- function(drivers_df) {
+      
+    ### Make an empty list to save things
+  
+    small_feats <- list()
+    
+    ### Loop over each basin 
+    
+      for(i in 1:18) {
+        
+              #### Track across basins
+        
+              removed_trib <- drivers_df %>%
+                filter(group_id == i) %>%
+                .$tributary %>%
+                .[1]
+              
+              
+              print(removed_trib)
+              
+              #### Determine how many unique values there are for each feature
+              
+              small_feats[[i]] <- drivers_df %>%
+                filter(group_id != i) %>%
+                dplyr::select(!c(constituent, 
+                            site_no,
+                            drnarea_km2)) %>%
+                dplyr::select(!c(log_conc,
+                                 date, 
+                                 water_year,
+                                 tributary,
+                                group_id)) %>%
+                summarise(across(everything(), ~length(unique(.x)))) %>% ### How many unique
+                pivot_longer(everything(), values_to = "unique_feature_values",
+                             names_to = "feature") %>%
+                mutate(feature_value_rank = dense_rank(unique_feature_values)) %>%
+                filter(feature_value_rank == 1) %>%
+                dplyr::select(!feature_value_rank) %>%
+                mutate(removed_trib = removed_trib)
+                
+      
+      } ## End for loop
+      
+      all_small_feats <- bind_rows(small_feats)
+      
+      #### Get features that only have one unique value across at least one
+      #### Cross-validation split 
+      
+      feats_just_one <- all_small_feats %>%
+        filter(unique_feature_values < 2) %>%
+        .$feature
+        
+        
+      return(feats_just_one)
+  
+  
+  
+}
+```
