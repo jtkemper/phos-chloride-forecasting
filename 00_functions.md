@@ -455,9 +455,10 @@ lgbm_selector <- function(constituent_df,
         
         
           run <- paste0("run", i)
+        
                     
-          cat(crayon::yellow("\nModeling Run", i, "\n")) 
-          
+          cat(crayon::yellow("\nModeling Run", i, "\n"))
+
       
           if(model_type == "gaged") {
             
@@ -494,7 +495,6 @@ lgbm_selector <- function(constituent_df,
                      
                           ### Now subset the testing data to that same subset
                           predictor_dataset_test <- predictors %>%
-                            #drop_na() %>%
                             filter(water_year %in% test_years) %>%
                             dplyr::select(colnames(predictor_dataset_train))
                           
@@ -896,25 +896,26 @@ lgbm_selector <- function(constituent_df,
             mutate(model = i)
           
           summary_var_imp <- all_var_imp %>%
-            group_by(Feature) %>%
+            dplyr::group_by(Feature) %>%
             summarise(mean_Gain = mean(Gain)) %>%
-            ungroup()
+            dplyr::ungroup()
           
             if(selector == "shap") {
               
                 one_removed_predictors <- all_shap_value_summary %>%
-                  ungroup() %>%
+                  dplyr::ungroup() %>%
                   arrange(desc(mean_sd_plus_imp)) %>%
                   dplyr::slice(-nrow(.))
                 
-          vars[[i]] <- summary_var_imp %>%
+          vars[[i]] <- all_shap_value_summary %>%
             ungroup() %>%
-            mutate(model = i)
+            mutate(model = i) %>%
+            rename(Feature = variable)
           
           ### See how many we have left
           var_count <- length(one_removed_predictors$variable)
           
-          if(var_count == 1) break 
+          if(var_count == 0) break 
           
           
             ### Update variable list
@@ -930,7 +931,7 @@ lgbm_selector <- function(constituent_df,
             } else if(selector == "gain"){
               
                 one_removed_predictors <- summary_var_imp %>%
-                  ungroup() %>%
+                  dplyr::ungroup() %>%
                   arrange(desc(mean_Gain)) %>%
                   dplyr::slice(-nrow(.))
                 
@@ -941,7 +942,7 @@ lgbm_selector <- function(constituent_df,
           ### See how many we have left
           var_count <- length(one_removed_predictors$Feature)
           
-          if(var_count == 1) break 
+          if(var_count == 0) break 
           
           
             ### Update variable list
@@ -1113,7 +1114,8 @@ ungaged scenarios in the formats necessary to perform hyperparameter
 tuning.
 
 ``` r
-train_valid_splitter <- function(trimmed_df,
+train_valid_splitter <- function(trimmed_df = NULL,
+                                 model_features_df = NULL,
                                  loocv = FALSE) {
   
     
@@ -1136,14 +1138,16 @@ train_valid_splitter <- function(trimmed_df,
                   #### Training data
                   
                   trimmed_train <- trimmed_df %>%
-                      filter(water_year %in% train_years) 
+                      filter(water_year %in% train_years) %>%
+                      dplyr::select(model_features_df$Feature, log_conc)
                       
                       if(nrow(trimmed_train) < 1) next
               
                     ### Now subset the testing data to that same subset
                       
                     trimmed_test <- trimmed_df %>%
-                      filter(water_year %in% test_years)
+                      filter(water_year %in% test_years) %>%
+                      dplyr::select(model_features_df$Feature, log_conc)
                     
                      k <- (2018 - h)/5
                     
@@ -1169,14 +1173,16 @@ train_valid_splitter <- function(trimmed_df,
                #### Training data
                       trimmed_train <- trimmed_df %>%
                       filter(group_id != g) %>%
-                        dplyr::select(!group_id)
+                        dplyr::select(!group_id) %>%
+                      dplyr::select(model_features_df$Feature, log_conc)
                       
                       if(nrow(trimmed_train) < 1) next
               
                     ### Now subset the testing data to that same subset
                     trimmed_test <- trimmed_df %>%
                       filter(group_id == g) %>%
-                      dplyr::select(!group_id)
+                      dplyr::select(!group_id) %>%
+                      dplyr::select(model_features_df$Feature, log_conc)
                     
                     split_list[[g]] <- (rsample::make_splits(trimmed_train, 
                                                    assessment = trimmed_test)) 
@@ -1212,14 +1218,14 @@ lgbm_tuner <- function(observational_df, model_df,
   
       trimmed_data <- observational_df %>%
         filter(water_year < 2019) %>%
-        ungroup() %>%
-        dplyr::select(model_df$Feature, group_id, log_conc)
+        ungroup() 
       
       
       ### Now, pull out the training data
       
       training_data <- trimmed_data %>%
         filter(water_year < 2019) %>%
+        dplyr::select(model_df$Feature, group_id, log_conc) %>%
         dplyr::select(!group_id)
       
       
@@ -1238,6 +1244,7 @@ lgbm_tuner <- function(observational_df, model_df,
       if(loocv == FALSE){
         
         splits_list <- train_valid_splitter(trimmed_data,
+                                            model_df,
                                             loocv = FALSE)
         
         split_names <- paste0("Split", seq(1:length(splits_list)))
@@ -1247,6 +1254,7 @@ lgbm_tuner <- function(observational_df, model_df,
       } else if(loocv == TRUE) {
         
         splits_list <- train_valid_splitter(trimmed_data,
+                                            model_df,
                                             loocv = TRUE)
         
         split_names <- paste0("Split", seq(1:length(splits_list)))
@@ -1663,34 +1671,37 @@ lgbm_runner <- function(training_data = NULL,
                   if(loo == FALSE){
                     
                      lgb.save(model_lgbm, 
-                                   filename =
-                                  paste0("r_images/lumped/final_tuned_lgbm_for_", 
-                                          save_file,
-                                          ".txt"))  
-                
+                              filename =
+                                here("data", "models", "lumped", 
+                                     paste0("final_tuned_lgbm_for_",
+                                            save_file, 
+                                            ".txt")))
+
                   } else if(loo == TRUE){
                     
                     
-                            lgb.save(model_lgbm, 
-                                   filename =
-                                  paste0("r_images/loocv/final_tuned_lgbm_for_", 
-                                          save_file,
-                                          ".txt"))  
-                
+                      lgb.save(model_lgbm, 
+                              filename =
+                                here("data", "models", "loocv", 
+                                     paste0("final_tuned_lgbm_for_",
+                                            save_file, 
+                                            ".txt")))
+                    
+
                   }       
                 
               } else if (solo == TRUE){
                 
-                
-                  
-              lgb.save(model_lgbm, 
-                                   filename =
-                                  paste0("r_images/solo/final_tuned_lgbm_for_", 
-                                          save_file,
-                                         training_data$tributary[1],
-                                          ".txt"))
-                
-                
+              
+                                    
+                      lgb.save(model_lgbm, 
+                               filename =
+                                here("data", "models", "solo", 
+                                     paste0("final_tuned_lgbm_for_",
+                                            training_data$tributary[1],
+                                            save_file, 
+                                            ".txt")))
+
                 } 
               
             }
@@ -1701,7 +1712,7 @@ lgbm_runner <- function(training_data = NULL,
             shap_values <- SHAPforxgboost::shap.prep(xgb_model =  model_lgbm, 
                                                            X_train = preds)
             
-          stats_and_importance[[5]] <- shap_values
+          stats_and_importance[[4]] <- shap_values
               
               
               
@@ -1709,15 +1720,15 @@ lgbm_runner <- function(training_data = NULL,
             shap_values2 <- SHAPforxgboost::shap.prep(xgb_model =  model_lgbm, 
                                                            X_train = test_lgbm)
             
-            stats_and_importance[[7]] <- shap_values2
+            stats_and_importance[[6]] <- shap_values2
             
             just_shaps <- shap.values(xgb_model =  model_lgbm, X_train = test_lgbm)
               
               
-            stats_and_importance[[8]] <- just_shaps$shap_score
+            stats_and_importance[[7]] <- just_shaps$shap_score
 
             
-            stats_and_importance[[9]] <- tree_table
+            stats_and_importance[[8]] <- tree_table
             
             ### Predict with the model
             fits <- predict(model_lgbm,
@@ -1737,7 +1748,7 @@ lgbm_runner <- function(training_data = NULL,
           mutate(exp_log_model_residuals = 10^(log_observed_conc - 
                                                  log_predicted_conc))
           
-          stats_and_importance[[10]] <- predicted_observed_smear
+          stats_and_importance[[9]] <- predicted_observed_smear
           
              ### Estimate smearing coefficient  
         D <- mean(predicted_observed_smear$exp_log_model_residuals)
@@ -1747,7 +1758,7 @@ lgbm_runner <- function(training_data = NULL,
                                             dplyr::rename(log_observed_conc = log_conc),
                                                 predicted) 
         
-     stats_and_importance[[6]] <- tibble(D_fact = D)
+     stats_and_importance[[5]] <- tibble(D_fact = D)
         
         ### Now use the smearing coefficient to convert back to non-log
         predicted_observed_err <- predicted_observed %>%
@@ -1763,54 +1774,31 @@ lgbm_runner <- function(training_data = NULL,
     ###########################################################################
     ############################################################################
      
-    ################# EVALUATE MODEL ###########################################
-        #### 
-       chosen_model_stats_lgbm <- predicted_observed_err %>%
-      ungroup() %>%
-      #group_by(storm) %>%
-      summarise(rmse_inst_conc = sqrt(mean(sqrerr)),
-                mae_inst_conc = mean(abs_error),
-                NSE = hydroGOF::NSE(predicted_conc, 
-                                    observed_conc),
-                logNSE = hydroGOF::NSE(predicted_conc, 
-                                    observed_conc),
-                KGE = hydroGOF::KGE(predicted_conc, 
-                                    observed_conc),
-                mape = mean(abs_pct_error),
-                pbias = hydroGOF::pbias(predicted_conc,
-                                        observed_conc),
-               corr = cor(predicted_conc, observed_conc),
-               br2 = hydroGOF::br2(predicted_conc, observed_conc)) 
+    ################# EVALUATE MODEL ##########################################
         
     model_stats_by_trib_lgbm <- predicted_observed_err %>%
       dplyr::group_by(tributary) %>%
-      summarise(rmse_inst_conc = sqrt(mean(sqrerr)),
-                mae_inst_conc = mean(abs_error),
-                #predicted_load = sum(predicted_inst_load),
-                #observed_load = sum(observed_inst_load),
-                NSE = hydroGOF::NSE(predicted_conc, 
+      summarise(rmse = sqrt(mean(sqrerr)),
+                mae = mean(abs_error),
+                nse = hydroGOF::NSE(predicted_conc, 
                                     observed_conc),
-                logNSE = hydroGOF::NSE(predicted_conc, 
+                kge = hydroGOF::KGE(predicted_conc, 
                                     observed_conc),
-                KGE = hydroGOF::KGE(predicted_conc, 
-                                    observed_conc),
-                mape = mean(abs_pct_error),
                 pbias = hydroGOF::pbias(predicted_conc,
                                         observed_conc),
-                corr = cor(predicted_conc, observed_conc),
+                r = cor(predicted_conc, observed_conc),
                 br2 = hydroGOF::br2(predicted_conc, observed_conc)) 
        
-       stats_and_importance[[1]] <- chosen_model_stats_lgbm
        
-       stats_and_importance[[2]] <- model_stats_by_trib_lgbm
+       stats_and_importance[[1]] <- model_stats_by_trib_lgbm
         
         #### Calculate variable    
         chosen_lgbm_var_imp <- lgb.importance(model_lgbm , percentage = TRUE)
         
-        stats_and_importance[[3]] <- chosen_lgbm_var_imp
+        stats_and_importance[[2]] <- chosen_lgbm_var_imp
         
         #### Save the output timeseries
-        stats_and_importance[[4]] <- predicted_observed_err
+        stats_and_importance[[3]] <- predicted_observed_err
         
         #### Return what we want
         return(stats_and_importance)
@@ -1903,7 +1891,8 @@ watershed_loo_runner <- function(constituent_df = NULL ,
                               dplyr::select(!group_id), 
                             picked_vars,
                             save = do_save,
-                            save_file = paste0(constit, "_", tr),
+                            save_file = paste0(constit, "_", 
+                                               str_replace_all(tr, " ", "_")),
                             tuned = is_tuned,
                             tuned_params = tuned_params,
                             loo = TRUE)
@@ -1912,7 +1901,7 @@ watershed_loo_runner <- function(constituent_df = NULL ,
             
             #### Calculate summary stats 
 
-            summary_stats_each[[i]] <-  tuned_model[[2]]
+            summary_stats_each[[i]] <-  tuned_model[[1]]
             
             cat(crayon::green("Done Summary Stats √ \n")) 
             
@@ -1923,7 +1912,7 @@ watershed_loo_runner <- function(constituent_df = NULL ,
             
             ### And variable importance
             
-            var_imp_each[[i]] <- tuned_model[[3]] %>% 
+            var_imp_each[[i]] <- tuned_model[[2]] %>% 
               as_tibble() %>%
               mutate(tributary = current_trib)
             
@@ -1931,23 +1920,23 @@ watershed_loo_runner <- function(constituent_df = NULL ,
               
             #### And in-sample fits (predictions on training data)
             
-            in_sample_fits[[i]] <- tuned_model[[10]] %>%
+            in_sample_fits[[i]] <- tuned_model[[9]] %>%
                   mutate(testing_trib = tr)
         
             #### And final time series
             
-            each_pred_obs_ts[[i]] <- tuned_model[[4]]  %>%
+            each_pred_obs_ts[[i]] <- tuned_model[[3]]  %>%
               mutate(tributary = current_trib)
             
             cat(crayon::green("Done Trib Importance √ \n")) 
             
             ### And shap values
             
-            test_shap_values <- tuned_model[[7]] 
+            test_shap_values <- tuned_model[[6]] 
             
-            train_shap_values <- tuned_model[[5]] 
+            train_shap_values <- tuned_model[[4]] 
             
-            each_just_shaps[[i]] <- tuned_model[[8]]
+            each_just_shaps[[i]] <- tuned_model[[7]]
             
             each_trib_test_shap_values[[i]] <- test_shap_values %>%
               as_tibble() %>%
@@ -1961,7 +1950,7 @@ watershed_loo_runner <- function(constituent_df = NULL ,
             
             #### And parameters related to constuction of the trees
             
-            tree_tables[[i]] <- tuned_model[[9]] %>%
+            tree_tables[[i]] <- tuned_model[[8]] %>%
               mutate(testing_trib = tr)
             
             
@@ -1982,14 +1971,14 @@ watershed_loo_runner <- function(constituent_df = NULL ,
             cat(crayon::green("Shap Plots Plotted √ \n")) 
             
             
-            ggsave(paste0("plots/",
-            cnst, "_testing_on_", current_trib, "_v2.jpg"),
+            ggsave(here("plots",paste0(
+            cnst, "_testing_on_", current_trib, "_v2.jpg")),
                    each_shap_plots_test,
                    height = 5, width = 5, dpi = 300)
             
-            ggsave(paste0("plots/",
+            ggsave(here("plots",paste0(
                           cnst,
-                          "_leaving_out_", current_trib, "_v2.jpg"),
+                          "_leaving_out_", current_trib, "_v2.jpg")),
                    each_shap_plots_train,
                    height = 5, width = 5, dpi = 300)
             
@@ -1997,7 +1986,7 @@ watershed_loo_runner <- function(constituent_df = NULL ,
         
             #### And smearing factor from final training
                   
-            each_d_fact[[i]] <- tuned_model[[6]] %>%
+            each_d_fact[[i]] <- tuned_model[[5]] %>%
               mutate(trib = tr)
             
                   cat(crayon::green("Smearing factor Saved √ \n")) 
