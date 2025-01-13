@@ -41,7 +41,30 @@ forecast evaluation).
 
 **Inputs**
 
+1)  `tp_drivers` (*from 03_observational_data_prep*): dataframe with
+    total phosphorus concentration data and all possible predictive
+    features
+
+2)  `chlor_drivers` (*from 03_observational_data_prep*): dataframe with
+    chloride concentration data and all possible predictive features
+
 **Outputs**
+
+1)  Model architectures for chloride and total phosphorus prediction in
+    gaged & ungaged scenarios (`tuned_tp_lgbm`, `tuned_chlor_lgbm`,
+    `tp_loo`, `chlor_loo`). Also output text files with these saved
+    architecture to xxx/data/model/lumped and xxx/data/models/loocv.
+
+2)  Performance statistics for total phosphorus and chloride
+    concentration predictions on test data
+    (`summary_stats_final_model_tp_gaged`,
+    `summary_stats_final_model_chlor_gaged`, `sum_stats_tp_ungaged`,
+    `sum_stats_chlor_ungaged`).
+
+3)  Predicted time series for total phosphorus and chloride for test
+    years (2019-2023) (`tp_pred_obs_ts`, `chlor_pred_obs_ts`,
+    `predicted_vs_observed_tp_ungaged`,
+    `predicted_vs_observed_chlor_ungaged`)
 
 ################################################################################ 
 
@@ -125,6 +148,10 @@ scenario
 #### Total Phosphorus
 
 ``` r
+###############################################################################
+
+################################################################################
+
 #### Perform variable selection for TP
 
 set.seed(913)
@@ -135,6 +162,7 @@ tp_all_models <- lgbm_selector(tp_drivers,
                                is_tuned = FALSE,
                                model_type = "gaged",
                                selector = "shap")
+
 
 #### See the performance stats for each model run
 
@@ -150,12 +178,12 @@ plot_stats(tp_all_models_stats)
 #### to observably "drop off"
 
 tp_models_we_like <- tp_all_models[[1]] %>%
-  filter(model == 68)
+  filter(model == 70)
 
 #### Rename variables, which will be useful later
 
 picked_vars_tp <- tp_models_we_like %>%
-      mutate(Feature = ifelse(Feature == "water_year2", "water_year", Feature))
+  mutate(Feature = dplyr::if_else(Feature == "water_year2", "water_year", Feature))
 
 
 ################################################################################
@@ -190,12 +218,12 @@ plot_stats(chlor_all_models_stats)
 #### to observably "drop off"
 
 chlor_models_we_like <- chlor_all_models[[1]] %>%
-  filter(model == 71)
+  filter(model == 68)
 
 #### Rename variables, which will be useful later
 
 picked_vars_chlor <- chlor_models_we_like %>%
-      mutate(Feature = ifelse(Feature == "water_year2", "water_year", Feature))
+      mutate(Feature = if_else(Feature == "water_year2", "water_year", Feature))
 ```
 
 ### Backwards Variable Selection - Ungaged Scenario
@@ -229,12 +257,12 @@ plot_stats(tp_ungaged_models_stats)
 #### to observably "drop off"
 
 tp_ungaged_models_we_like <- tp_ungaged_models_all[[1]] %>%
-  filter(model == 65)
+  filter(model == 68)
 
 #### Rename variables, which will be useful later
 
 picked_vars_tp_ungaged <- tp_ungaged_models_we_like %>%
-      mutate(Feature = ifelse(Feature == "water_year2", "water_year", Feature))
+      mutate(Feature = if_else(Feature == "water_year2", "water_year", Feature))
 ```
 
 #### Chloride
@@ -266,12 +294,12 @@ plot_stats(chlor_ungaged_models_stats)
 #### to observably "drop off"
 
 chlor_ungaged_models_we_like <- chlor_ungaged_models_all[[1]] %>%
-  filter(model == 66)
+  filter(model == 67)
 
 #### Rename variables, which will be useful later
 
 picked_vars_chlor_ungaged <- chlor_ungaged_models_we_like %>%
-      mutate(Feature = ifelse(Feature == "water_year2", "water_year", Feature))
+      mutate(Feature = if_else(Feature == "water_year2", "water_year", Feature))
 ```
 
 # Tune selected models and choose best hyperparameters
@@ -363,7 +391,12 @@ hype_tp
 
 best_params_tp <- scores_tp %>%
   arrange(mae_mean_plus_se_rank) %>%
-  dplyr::slice(2)
+  dplyr::slice(3)
+
+best_params_tp
+
+
+
 
 ################################################################################
 
@@ -385,7 +418,7 @@ hype_chlor
 
 best_params_chlor <- scores_chlor %>%
   arrange(mae_mean_plus_se_rank) %>%
-  dplyr::slice(9)
+  dplyr::slice(7)
 ```
 
 ### Ungaged models
@@ -432,13 +465,16 @@ hype_tp_ungaged <- hyper_chooser(constit_df = tp_train_valid,
 
 best_params_tp_ungaged <- scores_tp_loocv %>%
   arrange(mae_mean_plus_se_rank) %>%
-  dplyr::slice(1)
+  dplyr::slice(4)
+
+
+
 
 ################################################################################
 
 ########## Chloride #############################################################
 
-hype_chlor <- hyper_chooser(constit_df = chlor_train_valid,
+hype_chlor_ungaged <- hyper_chooser(constit_df = chlor_train_valid,
                          hypers_df = scores_chlor_loocv,
                          selected_params = picked_vars_chlor_ungaged,
                          loocv = TRUE)
@@ -461,7 +497,74 @@ perfect.
 
 ### Gaged
 
+#### Run the models
+
+``` r
+##### For Total Phosphorus
+
+tuned_lgbm_tp <- lgbm_runner(tp_train_valid , 
+                tp_test , 
+                picked_vars_tp,
+                save = TRUE,
+                save_file = "Phosphorus_Total",
+                tuned = TRUE,
+                tuned_params = best_params_tp)
+
+##### For Chloride
+
+tuned_lgbm_chlor <- lgbm_runner(chlor_train_valid , 
+                chlor_test , 
+                picked_vars_chlor,
+                save = FALSE,
+                save_file = "Chloride",
+                tuned = TRUE,
+                tuned_params = best_params_chlor)
+```
+
+#### Extract relevant outputs
+
+``` r
+#############################################################################
+
+#### Total Phosphorus
+
+#### Calculate summary stats 
+
+summary_stats_final_model_tp_gaged <- tuned_lgbm_tp[[1]]
+
+#### Final time series
+
+tp_pred_obs_ts <- tuned_lgbm_tp[[3]] 
+
+### And shap values and plots
+
+shap_values_tp_gaged <- tuned_lgbm_tp[[6]]
+
+shap.plot.summary(shap_values_tp_gaged) 
+
+
+#############################################################################
+
+#### Chloride
+
+#### Calculate summary stats 
+
+summary_stats_final_model_chlor_gaged <- tuned_lgbm_chlor[[1]]
+
+#### Final time series
+
+pred_obs_ts_chlor_gaged <- tuned_lgbm_chlor[[3]] 
+
+### And SHAP values and plots
+
+shap_values_chlor_gaged <- tuned_lgbm_chlor[[6]]
+
+shap.plot.summary(shap_values_chlor_gaged) 
+```
+
 ### Ungaged
+
+#### Run the models
 
 ``` r
 #### For Total Phosphorus
@@ -469,9 +572,9 @@ perfect.
 tp_loo <- watershed_loo_runner(tp_train_valid,
                                tp_test, 
                                picked_vars_tp_ungaged,
-                               best_params_tp_loocv,
-                               do_save = FALSE,
-                               is_tuned = FALSE,
+                               best_params_tp_ungaged,
+                               do_save = TRUE,
+                               is_tuned = TRUE,
                                constit = "Phosphorus_Total")
 
 #### For Chloride 
@@ -479,8 +582,69 @@ tp_loo <- watershed_loo_runner(tp_train_valid,
 chlor_loo <- watershed_loo_runner(chlor_train_valid,
                                chlor_test,
                                picked_vars_chlor_ungaged,
-                               best_params_chlor_loocv,
-                               do_save = FALSE,
-                               is_tuned = FALSE,
+                               best_params_chlor_ungaged,
+                               do_save = TRUE,
+                               is_tuned = TRUE,
                                constit = "Chloride")
+```
+
+#### Extract relevant outputs
+
+``` r
+################################################################################
+
+#### For Total Phosphorus
+
+##### First, summary statistics for model predictive performance
+
+sum_stats_tp_ungaged <- tp_loo[[1]]
+
+##### A predicted and observed time series
+
+predicted_vs_observed_tp_ungaged <- tp_loo[[3]]
+
+##### SHAP values for predictions
+###### Note that these are for the *test* data
+
+shap_values_tp_ungaged <- tp_loo[[4]]
+
+raw_shap_values_tp_ungaged <- tp_loo[[7]]
+
+##### Split values and other information about the trees
+##### Which can help to understand what the model is doing
+
+tree_tables_tp_ungaged <- tp_loo[[8]]
+
+##### Smearing factor for each tributary
+
+d_fact_tp_ungaged <- tp_loo[[5]]
+
+################################################################################
+
+#### For Chloride
+
+##### First, summary statistics for model predictive performance
+
+sum_stats_chlor_ungaged <- chlor_loo[[1]]
+
+
+##### A predicted and observed time series
+
+predicted_vs_observed_tp_ungaged <- tp_loo[[3]]
+
+##### SHAP values for predictions
+###### Note that these are for the *test* data
+
+shap_values_tp_ungaged <- tp_loo[[4]]
+
+raw_shap_values_tp_ungaged <- tp_loo[[7]]
+
+##### Split values and other information about the trees
+##### Which can help to understand what the model is doing
+
+tree_tables_tp_ungaged <- tp_loo[[8]]
+
+##### Smearing factor for each tributary
+
+d_fact_tp_ungaged <- tp_loo[[5]]
 ```
