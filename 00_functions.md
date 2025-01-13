@@ -2032,3 +2032,237 @@ watershed_loo_runner <- function(constituent_df = NULL ,
 
 }
 ```
+
+## New Get GCP URLS
+
+``` r
+### We need to re-write some functions from the nwmTools package
+### Here we re-write the geturls command to better reflect 
+### the URLS of the medium-term forecasts (the built-in function had syntax
+### more reflective of the short-term urls)
+
+get_gcp_urls2 <- function (config = "short_range", 
+                                domain = "conus", date, hour = "00",
+                                minute = "00", num, ensemble = NULL, 
+                                output = "channel_rt") 
+{
+    meta = nwm_filter(source = "gcp", version = NULL, config = config, 
+        date = date, ensemble = ensemble, output = output, domain = domain)
+    dates = seq.POSIXt(as.POSIXlt(paste(date, hour, minute), 
+        tz = "UTC"), length.out = num+1, by = "1 hour")
+    YYYYDDMM = rep(format(as.POSIXct(date, tz = "UTC"), "%Y%m%d"), num)
+    forward = sprintf("%03d", seq(1, num))
+    urls = glue(meta$http_pattern, YYYYDDMM = YYYYDDMM, config = meta$config[1], 
+        HH = hour, foward = forward, output = meta$output[1], 
+        domain = meta$domain, ensemble = meta$ensemble[1], prefix = meta$prefix[1])
+    dates = ymd_hm(paste0(date[1], hour, "00")) + hours(1:(num))
+    data.frame(dateTime = dates, urls = urls, output = output)
+} 
+
+#### Must do this so that some functions internal to nwmTools can be used
+
+environment(get_gcp_urls2) <- environment(get_gcp_urls)
+
+
+
+###################################################################################
+```
+
+## File Reader
+
+``` r
+#### Function to read downloaded NetCDF files and retrieve various bits of 
+#### information from those files 
+
+file_reader <- function(file = NULL, ids = NULL) {
+  
+channel_params <- tidync(file) %>%
+  activate("D0") %>%
+  hyper_tibble() %>%
+  filter(feature_id %in% ids)
+
+channel_plus_time <- channel_params %>%
+  mutate(feature_id  = as.character(feature_id)) %>%
+  as_tibble() 
+
+return(channel_plus_time)
+  
+  
+}
+```
+
+## Temp File Maker
+
+``` r
+### Function to generate the temporary files to store downloaded NWM forecasts
+
+temp_file_maker <- function(urls = NULL) {
+  
+ urls %>%
+    mutate(date_time_mem = paste0(init_date_time, "_", init_time, "_", 
+                                  member)) %>%
+      mutate(filename = tempfile(pattern = paste0(date_time_mem,"plot"), 
+                             fileext = ".nc")) %>%
+   dplyr::select(!c(date_time_mem)) 
+  
+  
+}
+```
+
+## NWM Downloader w/ cloud-based operations
+
+``` r
+### This function dowloads archived NWM forecasts from the Google Bucket
+### where they are stored. It utilizes cloud-based operations to extract
+### the reaches we are interested in BEFORE downloading the entire NWM file
+### to our local machine. In this way we avoid downloading giant files that 
+### contain largely extraneous data. This is perhaps the more "correct" way to 
+### do this. 
+### Note that this is a rewrite of the nwmTools get_timeseries function within 
+### Mike Johnson's nwmTools package. We are heavily indebted to the great work
+### Mike has done. Thanks Mike!!!!!! (https://github.com/mikejohnson51)
+### Also, *******It is NOT FAST*******
+### Perhaps it could be rewritten for efficiency, but hey, it works
+
+
+
+get_timeseries3 <- function(urls = NULL, 
+                            ids = NULL,
+                            outfile = NULL,
+                            index_id = "feature_id",
+                            varname = "streamflow"
+
+                            
+) {
+  
+            #### Get values function #######################################################
+            get_values <- function(url, var, ind = NULL) {
+                        v = suppressWarnings(values(terra::rast(glue("{url}://{var}"))))
+                        
+                        if (!is.null(ind)) {
+                            v = v[ind]
+                        }
+                        else {
+                            v = v
+                        }
+                        
+                        return(v)
+            }
+            ################################################################################
+
+
+### Get lead time from URL 
+### And get init_date from URL
+            
+lead_time <- str_extract(str_extract(urls, "f\\d+"), "\\d+")
+
+init_date <- as_date(str_extract(str_extract(urls, ".\\d+"), "\\d+"))
+
+member <- str_extract(urls, "mem\\d+")
+
+#### Little updater
+
+print(paste("Downloading", init_date, lead_time, member, " "))
+
+### First, set up a URL that turns the netCDF on the Google Bucket
+### Into a HD5 file
+### And utilizes external pointer (vsicurl) to access file "on the fly"
+
+nwm_url2 <- glue("HDF5:\"/vsicurl/{urls}\"")
+
+
+### Now get the feature_ids (comids) from the file
+
+all_ids <- get_values(url = nwm_url2, index_id)
+
+
+### Now find the indexes of our comids (reaches) of interest
+### In the file that contains all the comids
+### The thinking here is that the index of a given comid in the feature_id "layer"
+### Should be the same index of where the streamflow value corresponding to that comid
+### Is located
+### We need to put in a bunch of safety if-else statements to keep from breaking 
+### if the file is not found for whatever reason
+
+ 
+   if (!is.null(index_id)) {
+     
+     
+     
+      all_ids = get_values(url = nwm_url2, index_id)
+                
+     ### If no COMIDs are entered, return every streamflow ID
+     ### So all 2.7 million reaches in the NWM
+     ### But if particular COMIDs are desired
+     ### Find the index of those COMIDs
+     ### in the feature_id "layer"
+     
+        if (is.null(ids)) {
+            ind = NULL
+            ids = all_ids
+        }
+     
+        else {
+         
+                ind <- which(all_ids %in% ids)
+            
+        }
+   }
+
+    else {
+      
+        ind = NULL
+        ids = NULL
+        
+    } ### Returns null if error in reading files
+
+
+
+#### Now let's get streamflow
+#### It comes in without decimals (not sure why)
+
+q_values <- get_values(nwm_url2, varname, ind)
+
+q_values <- q_values/100
+
+#### And time 
+#### Which we need to multiply by 60
+#### to turn into "true" POSICxt time (seconds from 1970-01-01)
+
+nwm_time <- get_values(nwm_url2, "time")[1]*60
+
+
+#### Now, we have to actually extract the feature_id in the same way as we did
+#### for discharge
+#### This gets us a vector ordered in the same order as our discharge vector
+#### Without this, we will bind things that our in different orders
+#### and our final output dataframe will be meaningless 
+#### THIS IS EXTREMELY IMPORTANT
+
+comids <- get_values(nwm_url2, index_id, ind)
+
+### Bind the time, COMIDs, and modeled streamflow values into one tibble
+### Make into a tibble
+
+streamflow_by_reach <- tibble(comid = comids, 
+                              init_date = init_date, 
+                              lead_time = lead_time,
+                              member = member,
+                              predict_dateTime = as_datetime(nwm_time),
+                              modeled_q_cms = q_values
+                              )
+
+
+
+### And write that to file 
+
+write_csv(streamflow_by_reach, outfile,
+          append = TRUE,
+          col_names = !file.exists(outfile),
+          )
+
+
+#return(streamflow_by_reach)
+
+}
+```
