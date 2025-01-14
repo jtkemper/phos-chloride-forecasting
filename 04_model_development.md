@@ -630,21 +630,21 @@ sum_stats_chlor_ungaged <- chlor_loo[[1]]
 
 ##### A predicted and observed time series
 
-predicted_vs_observed_tp_ungaged <- tp_loo[[3]]
+predicted_vs_observed_chlor_ungaged <- chlor_loo[[3]]
 
 ##### SHAP values for predictions
 ###### Note that these are for the *test* data
 
-shap_values_tp_ungaged <- tp_loo[[4]]
+shap_values_chlor_ungaged <- chlor_loo[[4]]
 
-raw_shap_values_tp_ungaged <- tp_loo[[7]]
+raw_shap_values_chlor_ungaged <- chlor_loo[[7]]
 
 ##### Split values and other information about the trees
 ##### Which can help to understand what the model is doing
 
-tree_tables_tp_ungaged <- tp_loo[[8]]
+tree_tables_chlor_ungaged <- chlor_loo[[8]]
 
 ##### Smearing factor for each tributary
 
-d_fact_tp_ungaged <- tp_loo[[5]]
+d_fact_chlor_ungaged <- chlor_loo[[5]]
 ```
