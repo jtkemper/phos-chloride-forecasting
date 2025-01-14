@@ -1570,14 +1570,16 @@ lgbm_runner <- function(training_data = NULL,
           ### These are the variables in our training data
         chosen_model_train <- training_data %>%
             ungroup() %>%
-            dplyr::select(c(model$Feature, log_conc, date, tributary))
+            dplyr::select(c(model$Feature, log_conc, date, tributary)) %>%
+             dplyr::select(order(colnames(.)))
         
     
         
             ### Now subset the testing data to that same subset
            chosen_model_test <- testing_data %>%
               ungroup() %>%
-              dplyr::select(colnames(chosen_model_train))
+              dplyr::select(colnames(chosen_model_train)) %>%
+             dplyr::select(order(colnames(.)))
       
         
               ### Declare the predictor and response variables 
@@ -2467,6 +2469,312 @@ limb_getter <- function(model_df, observed_df){
                     delta_daily_q_cat,
                     lag_daily_q))
     
+  
+}
+```
+
+## LightGBM Forecaster
+
+This function makes forecasts of water quality concentration using
+previously trained LightGBM models and NWM streamflow forecast data. The
+function takes a variety of arguments:
+
+1)  `predictors_df` A dataframe containing all the data to be used for
+    forecasting. This is, essentially, NWM flow and derived antecedent
+    conditions, as well as whatever watershed characteristics we have
+    included in the model during the development process
+
+2)  `observed_df`: A dataframe containing observed data, which we will
+    use for evaluation
+
+3)  `D_factor`: dataframe containing the smearing factor calculated
+    during the development process
+
+4)  `constituent`: which constituent we are forecasting
+
+5)  `solo_or_lumped_or_loocv`: a string indicating which type a model
+    scenario the forecasting is to be done for
+
+6)  `nwm`: Boolean indicating in the streamflow forecast source is the
+    National Water Model or something else
+
+``` r
+lgbm_predictor <- function(predictors_df = NULL ,
+                           observed_df = NULL,
+                           D_factor = NULL,
+                           constituent = NULL,
+                           solo_or_lumped_or_loocv = "solo",
+                           nwm = TRUE,
+                           model_file_location = NULL){
+  
+  model_files <- list.files(model_file_location)
+  
+  #### Declare the list we're going to retun things in
+  nwm_error_and_full_ts <- list()
+  
+      #### Get the name of the tributary we are on 
+  #### For a given iteration
+  
+  if(nwm == TRUE) {
+    
+      trib <- observed_df$tributary[1]
+    
+  } else if(nwm == FALSE){
+    
+    trib = observed_df
+    
+  }
+
+  
+  
+  #### Addd to the forecasted df
+  
+  if(solo_or_lumped_or_loocv == "solo" |
+     solo_or_lumped_or_loocv == "loocv") {
+    
+    if(nwm == TRUE){
+      
+      forecasting_data <- predictors_df %>%
+        mutate(tributary = trib) %>%
+        mutate(lead_days = as.numeric(predict_date - init_date)) %>%
+        mutate(lead_days = as.factor(lead_days))
+      
+    } else if (nwm == FALSE) {
+      
+      forecasting_data <- predictors_df %>%
+        mutate(tributary = trib)
+      
+    }
+    
+  } else if (solo_or_lumped_or_loocv == "lumped") {
+    
+    if(nwm == TRUE){
+      
+          forecasting_data <- predictors_df %>%
+       mutate(lead_days = as.factor(lead_days))
+      
+      
+    } else if(nwm == FALSE) {
+      
+      forecasting_data <- predictors_df
+      
+    }
+    
+
+    
+  }
+
+  ### Find the relevant file name
+  ### For the trained model
+
+  if(solo_or_lumped_or_loocv == "lumped") {
+    
+      lgbm_model <- tibble(file = model_files) %>%
+    filter(str_detect(file, paste0(constituent))) %>%
+    .$file
+    
+    
+  } else if(solo_or_lumped_or_loocv == "loocv") {
+    
+      
+    lgbm_model <- tibble(file = model_files) %>%
+        filter(str_detect(file, paste0(constituent, "_", 
+                                       str_replace_all(trib, " ", "_")))) %>%
+        .$file
+    
+    
+  }
+
+
+
+  if(solo_or_lumped_or_loocv == "solo") {
+    
+    
+      #### Make the test data matrix
+    
+  forecast_data <- data.matrix(forecasting_data %>%  
+                               dplyr::select(water_year, season, log_daily_q,
+                                                      delta_daily_q,
+                                             #delta_daily_q_cat,
+                                                      mean_prior_weekly_q, 
+                                             mean_prior_monthly_q,
+                                                      lag_daily_q,
+                                                 ))
+  } else if(solo_or_lumped_or_loocv == "lumped" |
+            solo_or_lumped_or_loocv == "loocv") {
+    
+     forecast_data <- data.matrix(forecasting_data %>%
+                                  dplyr::select(!c(init_date, 
+                                                   lead_days, 
+                                                   predict_date,
+                                                   tributary)) %>%  
+                               dplyr::select(order(colnames(.))))
+    
+    
+  } 
+
+
+  #### Load in the tuned LGBM model
+  
+        cat(crayon::yellow(paste("Loading model ", lgbm_model, "\n")))
+
+    
+        final_tuned_model <- lgb.load(paste0(model_file_location,
+                                             "/",
+                                        lgbm_model))
+      
+
+  
+  #### For multiple observations on the same day
+  #### Take the mean of those 
+  
+  if(nwm == TRUE) {
+    
+        observed_df <- observed_df %>%
+            group_by(tributary, date) %>%
+            mutate(log_conc = mean(log_conc)) %>%
+            dplyr::slice(1) %>%
+            dplyr::ungroup()
+
+  }
+  
+  
+  ### Forecast with the model, bind to other relevant data
+  
+        forecast_from_nwm <- predict(final_tuned_model,
+                                       data = forecast_data) %>%
+          as_tibble() %>%
+          rename(log_forecasted_conc = 1) %>%
+          bind_cols(., forecasting_data %>%
+                      rename_with(~paste0(., "_forc"), where(is.numeric))) %>%
+          rename(log_modeled_flow =
+                      log_daily_q_forc)
+
+    ### Now bind to observations
+        
+        if(nwm == TRUE){
+          
+          
+        
+          forecast_and_obs <- forecast_from_nwm %>%
+            inner_join(., observed_df %>%
+                   dplyr::select(tributary,
+                                 date,
+                                 log_conc),
+                   join_by(predict_date == date,
+                           tributary == tributary)) %>%
+          rename(log_observed_conc = log_conc) 
+
+        ### Smearing
+
+        ### Transform back to linear
+            forecast_and_obs <- forecast_and_obs %>%
+                    mutate(forecasted_conc = D_factor*10^log_forecasted_conc) %>%
+                    mutate(observed_conc = 10^log_observed_conc)
+
+            nwm_error_and_full_ts[[1]] <- forecast_and_obs %>%
+              mutate(constituent = constituent)
+
+            ### Calculate some errors
+            
+           nwm_forecast_error <-  forecast_and_obs %>%
+                    mutate(raw_error = forecasted_conc - observed_conc,
+                           sqrerr = (raw_error)^2,
+                           abs_error = abs(raw_error)) %>%
+                    dplyr::group_by(tributary, lead_days) %>%
+                    summarise(rmse = sqrt(mean(sqrerr)),
+                      mae = mean(abs_error),
+                      kge = hydroGOF::KGE(forecasted_conc,
+                                          observed_conc),
+                     nse = hydroGOF::NSE(forecasted_conc,
+                                          observed_conc),
+                      pbias = hydroGOF::pbias(forecasted_conc,
+                                              observed_conc),
+                      br2 = hydroGOF::br2(forecasted_conc, observed_conc),
+                     decompose_kge(forecasted_conc, observed_conc)) %>%
+             dplyr::select(!c(r_term, variability_term, bias_term))
+
+            nwm_error_and_full_ts[[2]] <- nwm_forecast_error %>%
+              mutate(constituent = constituent)
+            
+            forecasted_contin_ts <- forecast_from_nwm %>%
+              mutate(forecasted_conc = 10^log_forecasted_conc*D_factor) %>%
+              mutate(lead_days = as.numeric(predict_date - init_date)) %>%
+              dplyr::select(tributary,
+                            init_date, predict_date, lead_days,
+                            forecasted_conc)
+            
+            
+        } else if(nwm == FALSE){
+          
+            forecasted_contin_ts <- forecast_from_nwm %>%
+              mutate(forecasted_conc = 10^log_forecasted_conc*D_factor) %>%
+              {if(solo_or_lumped_or_loocv == "solo") dplyr::select(., 
+                                                          tributary,
+                                                          date,
+                                                          forecasted_conc) 
+                else dplyr::select(., 
+                                   tributary,
+                                   init_date,
+                                   forecasted_conc) }
+          
+          
+          
+        }
+
+            nwm_error_and_full_ts[[3]] <- forecasted_contin_ts %>%
+              mutate(constituent = constituent)
+
+            return(nwm_error_and_full_ts)
+            
+            
+}
+```
+
+## Decompose KGE
+
+``` r
+#### This function decomposes KGE into its constituent parts
+#### of bias, variability, and correlation (r)
+#### See Gupta et al. (2009) for more information
+#### (https://doi.org/10.1016/j.jhydrol.2009.08.003)
+
+
+decompose_kge <- function(sim, obs) {
+  
+  #### Calculate the correlation between modeled and observed
+  
+  r <- cor(sim, obs, method = "pearson", use = "pairwise.complete.obs")
+  
+  #### And the bias
+  
+  bias <- mean(sim)/mean(obs)
+  
+  #### And the variability 
+
+  variability <- sd(sim)/sd(obs)
+  
+  #### Now calculate the terms as they appear in eqn. 9 in Gupta et al. (2009)
+  #### Which are used to calculate KGE 
+  
+  r_term <- (r-1)^2
+  
+  variability_term <- (variability-1)^2
+  
+  bias_term <- (bias-1)^2
+  
+  #### And the final KGE calculation
+  
+  kge_manual <- 1 - sqrt(r_term + variability_term + bias_term)
+  
+  #### Finally, make a summary table of each 
+  
+  decomposed_kge <- tibble(r, variability, bias,
+                           r_term, variability_term, bias_term,
+                           kge_manual)
+  
+  
+  return(decomposed_kge)
   
 }
 ```
