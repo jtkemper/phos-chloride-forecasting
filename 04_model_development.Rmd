@@ -72,7 +72,7 @@ forecast evaluation).
 
 ### Packages
 
-``` r
+```{r}
 ### Data mgmt
 require(tidyverse)
 
@@ -97,7 +97,7 @@ require(ggthemes)
 
 ### Load prior scripts
 
-``` r
+```{r}
 source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
 
 source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
@@ -147,7 +147,7 @@ scenario
 
 #### Total Phosphorus
 
-``` r
+```{r}
 ###############################################################################
 
 ################################################################################
@@ -192,7 +192,7 @@ picked_vars_tp <- tp_models_we_like %>%
 
 #### Chloride
 
-``` r
+```{r}
 #### Perform variable selection for Chlor
 
 set.seed(913)
@@ -230,7 +230,7 @@ picked_vars_chlor <- chlor_models_we_like %>%
 
 #### Total Phosphorus
 
-``` r
+```{r}
 #### Perform variable selection for TP
 #### Important: here we need to use the tp_train_valid dataframe
 #### So that we can keep out our test data
@@ -267,7 +267,7 @@ picked_vars_tp_ungaged <- tp_ungaged_models_we_like %>%
 
 #### Chloride
 
-``` r
+```{r}
 #### Perform variable selection for Chlor
 
 set.seed(913)
@@ -338,7 +338,7 @@ by running the top ten hyperparameters again.
 
 #### Tune the hypers
 
-``` r
+```{r}
 ################################################################################
 #################### TUNE THE MODEL ############################################
 
@@ -365,7 +365,7 @@ scores_chlor_loocv <- lgbm_tuner(chlor_drivers, picked_vars_chlor, loocv = TRUE)
 
 #### Choose best hyperparameters (second pass)
 
-``` r
+```{r}
 ############### Total Phosphorus ###############################################
 
 #### Once tuning is done, we want to run each of the top ten returned hyperparameters
@@ -425,7 +425,7 @@ best_params_chlor <- scores_chlor %>%
 
 #### Tune the hypers
 
-``` r
+```{r}
 ################################################################################
 #################### TUNE THE MODEL ############################################
 
@@ -447,7 +447,7 @@ scores_chlor_loocv <- lgbm_tuner(chlor_drivers, picked_vars_chlor, loocv = TRUE)
 
 #### Choose best hyperparameters (second pass)
 
-``` r
+```{r}
 ############### Total Phosphorus ###############################################
 
 #### Once tuning is done, we want to run each of the top ten returned hyperparameters
@@ -499,7 +499,7 @@ perfect.
 
 #### Run the models
 
-``` r
+```{r}
 ##### For Total Phosphorus
 
 tuned_lgbm_tp <- lgbm_runner(tp_train_valid , 
@@ -523,7 +523,7 @@ tuned_lgbm_chlor <- lgbm_runner(chlor_train_valid ,
 
 #### Extract relevant outputs
 
-``` r
+```{r}
 #############################################################################
 
 #### Total Phosphorus
@@ -566,7 +566,7 @@ shap.plot.summary(shap_values_chlor_gaged)
 
 #### Run the models
 
-``` r
+```{r}
 #### For Total Phosphorus
 
 tp_loo <- watershed_loo_runner(tp_train_valid,
@@ -590,7 +590,7 @@ chlor_loo <- watershed_loo_runner(chlor_train_valid,
 
 #### Extract relevant outputs
 
-``` r
+```{r}
 ################################################################################
 
 #### For Total Phosphorus

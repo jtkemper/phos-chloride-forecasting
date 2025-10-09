@@ -37,7 +37,7 @@ make predictions in individual watersheds
 
 ### Packages
 
-``` r
+```{r}
 ### Data mgmt 
 require(tidyverse)
 require(tsibble)
@@ -54,7 +54,7 @@ require(sf)
 
 ### Load prior scripts
 
-``` r
+```{r}
 source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
 
 source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
@@ -68,7 +68,7 @@ These points were delienated manually in ArcGIS by selecting the
 flowline closest to the watershed outlet and transforming it into a
 point feature
 
-``` r
+```{r}
 #### Import 'em
 
 start_points <- st_read(here("data/watershed_outlets/watershed_outlets_updated.shp")) %>%
@@ -78,7 +78,7 @@ start_points <- st_read(here("data/watershed_outlets/watershed_outlets_updated.s
 
 ### Find COMID (for NHD Medium-Res) for outlet points
 
-``` r
+```{r}
 #### Convert the simple feature collection to a set of point features 
 
 start_points2 <- start_points["geometry"] %>% sf::st_as_sfc()
@@ -114,7 +114,7 @@ start_comid_df <- tibble(start_comid = unlist(comid_start)) %>%
 This will be necessary if we want to use available USGS datasets to
 determine various attributes at each flowline in the entire basin
 
-``` r
+```{r}
 #### Get all COMIDs in an individual basin
 
 comids_by_basin <- map2(start_comid_df$tributary,
@@ -132,7 +132,7 @@ comids_by_basin <- comids_by_basin %>%
 
 ### Find outlet COMIDs for NHD high-resolution
 
-``` r
+```{r}
 #### First, download the NHD high-resolution
 
 lc_nhd_hr <- download_nhdplushr(here("downloads/nhd_hr"),
@@ -182,7 +182,7 @@ We are downloading the StreamStats parameters available for VT and NY.
 In particular, what we are interested in is percent elevation over 1200
 ft, which for the LCB is a rough indicator of snow coverage/importance.
 
-``` r
+```{r}
 #### Take the shapefile of catchment outlet points 
 #### And transform it to the format needed to access the StreamStats API
 #### (which requires an individual field for lat and for long)
@@ -288,7 +288,7 @@ of riparian land cover.
 
 We import both these datasets here
 
-``` r
+```{r}
 #### Get land cover for each basin entirely
 
 lulc_2001 <- lulc_processer(here("data/lulc_2001_by_watershed.csv"),
@@ -315,7 +315,7 @@ drainage density (which we derive from flowline lengths), stream slopes,
 lengths of different geomorphic stream types, and frequency of
 particular stream orders.
 
-``` r
+```{r}
 #### Get some stats
 
 flowline_stats_hr <- map2(start_comid_hr$tributary,
@@ -405,7 +405,7 @@ mainstem_flowline_lengths <- bind_cols(start_comid_hr %>%
 
 ### Hack’s exponent
 
-``` r
+```{r}
 hacks <- inner_join(final_streamstat_features %>%
              dplyr::select(tributary, drnarea_km2),
            mainstem_flowline_lengths %>%
@@ -423,7 +423,7 @@ Calculates the Richards-Baker Flashiness Index, an indicator of
 hydrologic “flashiness”. More details can be found in the original
 publication (<https://doi.org/10.1111/j.1752-1688.2004.tb01046.x>)
 
-``` r
+```{r}
 #### Make the flow data into a tsibble to check to see if there are 
 #### gaps in the flow data
 
@@ -500,7 +500,7 @@ This is from Underwood et al., 2018 (
 degree to which flow fluctuates at an annual scale. It is the ratio of
 mean annual peak flow to mean annual mean flow.
 
-``` r
+```{r}
 #### First calcualte the average annual daily flow
 
 mean_flows <- flow_data %>%
@@ -548,7 +548,7 @@ various other constituent dynamics. We have trimmed this data to only
 our watersheds of interest in ArcGIS. We import that trimmed data set
 here, and then calculate tile drainage as a percent of watershed area.
 
-``` r
+```{r}
 #### Read in the .csv file 
 tile <- read_csv(here("data/percent_tile.csv")) %>%
   as_tibble() %>%
@@ -600,7 +600,7 @@ Infiltration-Excess Overland Flow, Saturation-Excess Overland Flow,
 Average Annual Runoff, RUSLE R-factor, Topographic Wetness Index,
 Groundwater Recharge, Contact Time
 
-``` r
+```{r}
 ### Infiltration-Excess Overland Flow 
 #### Values represent the mean percentage of total streamflow that is comprised
 #### of infiltration-excess overland flow
@@ -674,7 +674,7 @@ run_gw <- run_gw %>%
 
 Mean Annual Snow
 
-``` r
+```{r}
 #### Mean annual snow as a percent of total precip, 1905-2002
 #### More here: https://www.sciencebase.gov/catalog/item/57053dc5e4b0d4e2b756c117
 
@@ -693,7 +693,7 @@ snow <- snow %>%
 
 #### Average Distance to Stream
 
-``` r
+```{r}
 ### The average distance to a flow line (stream network) from any given land cell
 ### for each NHDPlus V2 catchment. More about how this was derived can be found here: 
 ### https://www.sciencebase.gov/catalog/item/5d1a1dfbe4b0941bde6025d2
@@ -719,7 +719,7 @@ dist_to_stream <- dist_to_stream %>%
 
 #### Sinuosity
 
-``` r
+```{r}
 #### Sinuosity was calculated for each reach 
 #### And no accumulation was done
 #### Therefore, we need to approach this calculation a bit different
@@ -743,7 +743,7 @@ sinuosity <- sinuosity %>%
 
 #### Bankfull width and depth
 
-``` r
+```{r}
 #### An estimation of bankfull width based regression equations in 
 #### Bieger et al. 2015 (https://doi.org/10.1111/jawr.12282)
 #### More here: https://www.sciencebase.gov/catalog/item/5cf02bdae4b0b51330e22b85
@@ -779,7 +779,7 @@ hyd_geometry <- hyd_geometry %>%
 
 Soil Hydrologic Groups, Soil Phosphorus
 
-``` r
+```{r}
 #### Download data regarding the percentage of soils 
 #### of Hydrologic Group A and B, which are well to moderately-drained soils with high
 #### infiltration capacity and typically of coarse to moderately coarse texture
@@ -823,7 +823,7 @@ soils <- soils %>%
 
 #### Surficial Geology and Bedrock Geology
 
-``` r
+```{r}
 #### Surficial Geology compiled from the USGS map database for surficial 
 #### materials in the United States (https://pubs.usgs.gov/ds/425/)
 #### More here: https://www.sciencebase.gov/catalog/item/57d8529ee4b090824ff9ac91
@@ -919,7 +919,7 @@ bedrock_geology <- bedrock_geology %>%
 
 Lithologic Hydraulic Conductivity, Geologic Phosphorus
 
-``` r
+```{r}
 #### Get data related to permeability (really, lithological hydraulic conductivity)
 #### From Olson and Hawkins, 2014
 #### Units are in micrometers/second
@@ -952,7 +952,7 @@ other_geol <- other_geol %>%
 
 #### Stream & Basin Slope
 
-``` r
+```{r}
 #### This is slope of the streams in a given watershed AND
 #### This is the slope of the entire basin (not just the streams)
 #### More here: https://www.sciencebase.gov/catalog/item/57976a0ce4b021cadec97890
@@ -974,7 +974,7 @@ topo <- topo %>%
 
 Fertilizer application, septic systems, wastewater, dams
 
-``` r
+```{r}
 ### Phosphorus Fertilzer Application 1997
 #### Source data is a 1997 USGS publication by Ruddy et al
 #### Units are kg/km2
@@ -1051,7 +1051,7 @@ max_pop_dens <- max_pop_dens %>%
 Combine all the watershed characteristics we have calculated/acquired
 into one dataframe
 
-``` r
+```{r}
 ### List all characteristics we've gathered 
 
 all_chars <- list(final_streamstat_features,

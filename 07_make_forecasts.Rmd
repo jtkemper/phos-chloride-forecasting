@@ -42,7 +42,7 @@ forecasts. It results in forecasts of concentration for water year
 
 ### Packages
 
-``` r
+```{r}
 ### Data mgmt
 require(tidyverse)
 
@@ -54,7 +54,7 @@ require(SHAPforxgboost)
 
 ### Load prior scripts
 
-``` r
+```{r}
 source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
 
 source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
@@ -74,7 +74,7 @@ source(knitr::purl(here("Rmd-files/06_forecast_data_prep.Rmd"), quiet=TRUE))
 
 ### Gaged Scenario
 
-``` r
+```{r}
 #### Forecast for Total Phosphorus
 
 nwm_forecasts_tp_gaged <- lgbm_predictor(predictors_df = forecasting_data_tp_gaged, 
@@ -100,7 +100,7 @@ nwm_forecasts_chlor_gaged <- lgbm_predictor(predictors_df = forecasting_data_chl
 
 ### Ungaged Scenario
 
-``` r
+```{r}
 ### Forecast for Total Phosphorus
 
 nwm_forecasts_tp_ungaged <- pmap(list(predictors_df = forecasting_data_tp_ungaged$nwm_data, 
@@ -129,7 +129,7 @@ nwm_forecasts_chlor_ungaged <- pmap(list(predictors_df = forecasting_data_chlor_
 
 ### Gaged
 
-``` r
+```{r}
 ################################################################################
 
 #### Total Phosphorus
@@ -165,7 +165,7 @@ forecast_stats_chlor_gaged <- nwm_forecasts_chlor_gaged[[2]]
 
 ### Ungaged
 
-``` r
+```{r}
 ################################################################################
 
 #### Total Phosphorus

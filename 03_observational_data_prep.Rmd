@@ -35,7 +35,7 @@ Three dataframes with monitoring data and watershed attributes:
 
 ### Packages
 
-``` r
+```{r}
 ### Data mgmt
 require(tidyverse)
 require(zoo)
@@ -43,7 +43,7 @@ require(zoo)
 
 ### Load prior scripts
 
-``` r
+```{r}
 source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
 
 source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
@@ -55,7 +55,7 @@ source(knitr::purl(here("Rmd-files/02_watershed_attributes_download.Rmd"), quiet
 
 ### Clean the USGS observed discharge data
 
-``` r
+```{r}
 #### Join to tables with site names
 #### Transform flow data to m3/s 
 #### Take 0 flow days and make them instead a very small number (10^-4 cfs)
@@ -83,7 +83,7 @@ flow_data_clean <- flow_data %>%
 
 ### Transform to log and add in antecedent features
 
-``` r
+```{r}
 #### First, transform normalized discharge (m3/s/km2) to log-scale
 #### Then, calculate daily, weekly, and monthly discharge
 #### Calculate the the change in discharge from time t to time t-1
@@ -140,7 +140,7 @@ flow_data_transform <- flow_data_clean %>%
 
 ### Clean VTDEC water quality monitoring data
 
-``` r
+```{r}
 #### Mostly, select the constituents we want, rename, and join columns to get 
 #### a more workable format
 #### The most important thing we are doing here is joining the constituent with 
@@ -200,7 +200,7 @@ lc_tribs_wq_all_clean <- lc_tribs_wq_all %>%
 
 ### Join discharge and water quality data
 
-``` r
+```{r}
 #### Join them together
 
 tribs_wq_and_q_all <- inner_join(flow_data_transform, 
@@ -211,7 +211,7 @@ tribs_wq_and_q_all <- inner_join(flow_data_transform,
 
 ### Join combined water quality & discharge data to watershed attributes
 
-``` r
+```{r}
 #### Do it 
 
 all_drivers <- tribs_wq_and_q_all %>%
@@ -244,7 +244,7 @@ chlor_drivers <- all_drivers %>%
 
 ### Remove unsplittable features
 
-``` r
+```{r}
 #### We want check to make sure each feature has at least two unique values across
 #### all cross validation data sets 
 #### This removes features that would have limited explainability in a leave-one-out
@@ -279,7 +279,7 @@ unsplittable_feats_chlor %in% names(chlor_drivers)
 
 ### Split into training/valid, testing
 
-``` r
+```{r}
 #### For Total Phosphorus
 
 tp_train_valid <- tp_drivers %>%

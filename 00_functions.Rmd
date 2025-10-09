@@ -13,7 +13,7 @@ classes to create an Agriculture class, and combine water and wetlands
 to create a Water+Wetlands class. We also normalize areas of each class
 by watershed area
 
-``` r
+```{r}
 #### Here is the function
 
 lulc_processer <- function(file_string,
@@ -58,7 +58,7 @@ This function calculates the lengths of flowlines in each watershed from
 the NHD HR. It also calculates various other flowline stats, like
 elevation, basin slope, and the geomorphic type (based on slope)
 
-``` r
+```{r}
 hr_flow_length_calculator <- function(tributary = NULL,
                                       begin_comid = NULL,
                                       hr_data = NULL,
@@ -176,7 +176,7 @@ hr_flow_length_calculator <- function(tributary = NULL,
 
 ## Get all COMIDs
 
-``` r
+```{r}
 all_comid_getter <- function(tributary = NULL,
                                    begin_comid = NULL,
                                    trib_or_main = "Trib") {
@@ -213,7 +213,7 @@ all_comid_getter <- function(tributary = NULL,
 This is a short function that basically just pivots the dataframe
 retuned by nhdTools::get_catchment_characteristics into wide format
 
-``` r
+```{r}
 pivot_nhd_chars_wide <- function(nhd_char_df = NULL,
                                  comids_df = NULL){
   
@@ -241,7 +241,7 @@ This is a function that reads NHD flowline characteristic data
 (Wieczorek et al., 2018)  
 directly from the ScienceBase API
 
-``` r
+```{r}
 read_direct_from_sb <- function(sci_base_id = NULL) {
   
   ##### Print error if we are missing ScienceBase ID
@@ -314,7 +314,7 @@ cross-validation split, have only one value for all tributaries that are
 it biases model training to variables that may serve to “identify” a
 specific basin rather than reflect process
 
-``` r
+```{r}
 remove_unsplittable <- function(drivers_df) {
       
     ### Make an empty list to save things
@@ -384,7 +384,7 @@ deviation of the SHAP values as criteria for ranking variables, and then
 trims off the least important one. In this way, we can see which
 variables result in the best performance.
 
-``` r
+```{r}
 ## Run a loop of different years and different models to pick our best model
 
 lgbm_selector <- function(constituent_df,
@@ -1072,7 +1072,7 @@ the variable selection process and plots those as a function of model
 “number”, where model number 1 has all n variables and model n has 1
 variable
 
-``` r
+```{r}
 plot_stats <- function(model_stats_df) {
   
   model_stats_df %>%
@@ -1113,7 +1113,7 @@ This function makes training-validation splits for both gaged and
 ungaged scenarios in the formats necessary to perform hyperparameter
 tuning.
 
-``` r
+```{r}
 train_valid_splitter <- function(trimmed_df = NULL,
                                  model_features_df = NULL,
                                  loocv = FALSE) {
@@ -1206,7 +1206,7 @@ train_valid_splitter <- function(trimmed_df = NULL,
 This function tunes the hyperparameters for each LightGBM model and
 modeling scenario.
 
-``` r
+```{r}
 #### FUNCTION THAT TUNES A CHOSEN LGBM MODEL ##################################
 
 lgbm_tuner <- function(observational_df, model_df, 
@@ -1400,7 +1400,7 @@ lgbm_tuner <- function(observational_df, model_df,
 This function essentially runs the top 10 performing hyperparameters
 returned by the tuning processes to make a final selection of the hypers
 
-``` r
+```{r}
 ####  PLOTS TO EVALUATE WHICH OF THE HYPERPARAMETERS IN THE TOP TEN FIT BEST ###
 
 #### Re-run tuned to pick best ####
@@ -1520,7 +1520,7 @@ has never seen before. It also saves trained model “architecture” to
 file, so that they may be used again in a forecasting capacity in a
 later step.
 
-``` r
+```{r}
 ########################### FUNCTION TO RUN LGBM ##############################
 ### Importantly, this is really most useful when you only want to run it once
 ### The runs we have set up with the leave one out are more complex and require 
@@ -1816,7 +1816,7 @@ models with our selected features and hyperparamters in an **ungaged**
 scenario, using the lgbm_runner function above. It is basically a
 wrapper around lgbm_runner for an ungaged scenario.
 
-``` r
+```{r}
 #### This function takes a bunch of arguments
 #### 1) constituent_df: this is the training data with concentration and 
 #### all our selected features
@@ -2037,7 +2037,7 @@ watershed_loo_runner <- function(constituent_df = NULL ,
 
 ## New Get GCP URLS
 
-``` r
+```{r}
 ### We need to re-write some functions from the nwmTools package
 ### Here we re-write the geturls command to better reflect 
 ### the URLS of the medium-term forecasts (the built-in function had syntax
@@ -2072,7 +2072,7 @@ environment(get_gcp_urls2) <- environment(get_gcp_urls)
 
 ## File Reader
 
-``` r
+```{r}
 #### Function to read downloaded NetCDF files and retrieve various bits of 
 #### information from those files 
 
@@ -2095,7 +2095,7 @@ return(channel_plus_time)
 
 ## Temp File Maker
 
-``` r
+```{r}
 ### Function to generate the temporary files to store downloaded NWM forecasts
 
 temp_file_maker <- function(urls = NULL) {
@@ -2113,7 +2113,7 @@ temp_file_maker <- function(urls = NULL) {
 
 ## NWM Downloader w/ cloud-based operations
 
-``` r
+```{r}
 ### This function dowloads archived NWM forecasts from the Google Bucket
 ### where they are stored. It utilizes cloud-based operations to extract
 ### the reaches we are interested in BEFORE downloading the entire NWM file
@@ -2274,7 +2274,7 @@ write_csv(streamflow_by_reach, outfile,
 This function takes NWM forecasts, which are hourly, and transforms them
 to daily by simply taking a mean of the forecasted discharge
 
-``` r
+```{r}
 #### Make daily
 
 nwm_daily_maker <- function(nwm_df) {
@@ -2304,7 +2304,7 @@ observed and one forecasted for a forecast with a lead time of one day
 (so issued at Oct 30th); and so on. This is kinda complicated to create
 a dataframe that follows this format
 
-``` r
+```{r}
 antecedent_calculator <- function(predict_date,
                                   init_date,
                                   site_no,
@@ -2429,7 +2429,7 @@ This function calculates the change in discharge from time t-1 to time
 t. It calculates this as both a raw numeric and then a categorical
 variable with three possible values of -1, 0, and 1.
 
-``` r
+```{r}
 limb_getter <- function(model_df, observed_df){
   
   
@@ -2498,7 +2498,7 @@ function takes a variety of arguments:
 6)  `nwm`: Boolean indicating in the streamflow forecast source is the
     National Water Model or something else
 
-``` r
+```{r}
 lgbm_predictor <- function(predictors_df = NULL ,
                            observed_df = NULL,
                            D_factor = NULL,
@@ -2733,7 +2733,7 @@ lgbm_predictor <- function(predictors_df = NULL ,
 
 ## Decompose KGE
 
-``` r
+```{r}
 #### This function decomposes KGE into its constituent parts
 #### of bias, variability, and correlation (r)
 #### See Gupta et al. (2009) for more information

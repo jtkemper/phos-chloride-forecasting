@@ -38,7 +38,7 @@ required
 
 ### Packages
 
-``` r
+```{r}
 ## Data mgmt
 require(tidyverse)
 
@@ -53,13 +53,13 @@ require(here)
 
 ### Load prior scripts
 
-``` r
+```{r}
 source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
 ```
 
 # Get metadata for USGS gage of interest
 
-``` r
+```{r}
 #### First, retrieve the NWIS IDs of the gages we have selected
 #### in the Lake Champlain basin
 #### We've pulled these gage IDs from various pubs in the region 
@@ -123,7 +123,7 @@ lc_gages_metadata_clean <- inner_join(lc_site_ids,
 
 # Get metadata for water quality monitoring sites
 
-``` r
+```{r}
 #### Now, read-in a list of the VTDEC tributary monitoring sites. 
 #### To do so, we have to download data monitored by VTDEC 
 #### for a subset of the Champlain Tribs water quality monitoring period (1991-present). 
@@ -201,7 +201,7 @@ rm(wq_data_profile)
 
 ### Streamflow Data
 
-``` r
+```{r}
 #### Downloads USGS flow data 
 #### We want to daily values
 #### so let's download them
@@ -217,7 +217,7 @@ flow_data <- dataRetrieval::readNWISdv(siteNumbers = lc_sites_metadata_all$site_
 
 ### Water quality data
 
-``` r
+```{r}
 #### Download water quality data from each of the eighteen tribs
 #### This require looping over each station to avoid breaking the downloader
 

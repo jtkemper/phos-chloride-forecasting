@@ -43,7 +43,7 @@ streamflow. Once these are prepped, we can make the actual forecasts
 
 ### Packages
 
-``` r
+```{r}
 # Data mgmt
 require(tidyverse)
 
@@ -54,7 +54,7 @@ require(furr)
 
 ### Load prior scripts
 
-``` r
+```{r}
 source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
 
 source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
@@ -72,7 +72,7 @@ source(knitr::purl(here("Rmd-files/05_forecast_data_download.Rmd"), quiet=TRUE))
 
 ### Bring in forecast files from where we saved them during download
 
-``` r
+```{r}
 ##### This is for everything else (Oct 2021-Sept 2022; Nov 2022-Sept 2023)
 
 #### Set forecast file location and list all the files located there
@@ -106,7 +106,7 @@ mt_downloads_lc <- map(mt_downloads, ~(.x %>%
 
 ### Transform the NWM to daily values
 
-``` r
+```{r}
 #### Transform all NWM forecasts to daily 
 
 mt_downloads_lc_trimmed_daily <- map(mt_downloads_lc, nwm_daily_maker,
@@ -154,7 +154,7 @@ forecasted discharge (1,2,3); on day 2, three days of observed and four
 days of forecasted, and so on and so forth. So we need to build a
 dataframe that reflects this
 
-``` r
+```{r}
 ### First, make sure the observed data is arranged by date and station
 
 observed_flow_for_nwm_predictions <- flow_data_transform %>%
@@ -216,7 +216,7 @@ flow_ants_lc <- purrr::pmap_dfr(list(predict_date = timesteps_needed$predict_dat
 
 ### Delta Q
 
-``` r
+```{r}
 #### Calculate the delta q
 
 delta_q <- limb_getter(nwm_daily_mean_forecast_lc_tribs,
@@ -225,7 +225,7 @@ delta_q <- limb_getter(nwm_daily_mean_forecast_lc_tribs,
 
 ### Combine antecedent and delta Q
 
-``` r
+```{r}
 antecedent_flow <- bind_cols(nwm_daily_mean_forecast_lc_tribs, 
                              flow_ants_lc) %>%
   inner_join(., 
@@ -235,7 +235,7 @@ antecedent_flow <- bind_cols(nwm_daily_mean_forecast_lc_tribs,
 
 ### Put all the flow conditions together
 
-``` r
+```{r}
 nwm_flow_and_antecedents <- antecedent_flow %>%
   dplyr::select(!delta_daily_q_cat) %>%
   mutate(day_of_year = yday(predict_date)) %>%
@@ -267,7 +267,7 @@ dataframes for performing forecasts
 
 ### For gaged
 
-``` r
+```{r}
 ### Total Phosphorus
 
 forecasting_data_tp_gaged <- nwm_flow_and_antecedents %>%
@@ -291,7 +291,7 @@ forecasting_data_chlor_gaged <- nwm_flow_and_antecedents %>%
 
 ### For ungaged
 
-``` r
+```{r}
 ### For total phosphorus
 
 forecasting_data_tp_ungaged <- nwm_flow_and_antecedents %>%

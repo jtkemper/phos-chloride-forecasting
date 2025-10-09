@@ -36,7 +36,7 @@ can take a **VERY LONG** time to run
 
 ### Packages
 
-``` r
+```{r}
 ### Data mgmt
 
 require(tidyverse)
@@ -51,7 +51,7 @@ require(nwmTools)
 
 ### Load prior scripts
 
-``` r
+```{r}
 source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
 
 source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
@@ -67,7 +67,7 @@ source(knitr::purl(here("Rmd-files/04_model_development.Rmd"), quiet=TRUE))
 
 ### Generate the urls where forecasts might be found
 
-``` r
+```{r}
 #### First, get the dates that we are interested in
 #### We only want to download forecasts from v2.1 of the NWM
 #### Which was operational from from 21 April 2021 to 20 September 2023
@@ -157,7 +157,7 @@ all_urls_mt <- bind_rows(urls_all_days_mt_v21) %>%
 
 ### Format URLs and COMID dataframes to allow for download
 
-``` r
+```{r}
 #### First, nest the URL dataframe
 
 all_urls_and_files_mt_nest <- all_urls_mt %>%
@@ -198,7 +198,7 @@ write_file <- paste0(here("nwm_operational/medium_term"), "/",
 
 ### Download NWM
 
-``` r
+```{r}
 #### Extract the COMIDs that we are interested in
 #### Note that this inherits the lc_sites_metadata_all variable from
 #### 01_data_discovery_and_download.Rmd (so it requires that script to be run)
@@ -232,7 +232,7 @@ walk(trim_urls_and_files_mt_unnest$urls,
 
 ### Check to see if download completed
 
-``` r
+```{r}
 #### Since we are downloading a month at a time, the download may break before
 #### The entire month is downloaded. To check, we want to see what the last date
 #### downloaded was
