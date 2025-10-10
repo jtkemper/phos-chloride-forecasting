@@ -3,6 +3,14 @@
 JTK
 2025-01-03
 
+## Housekeeping / Packages
+
+```{r}
+### NWM download and NetCDF mgmt
+
+require(nwmTools)
+```
+
 ## Land Cover Processor
 
 This function takes areas for each land cover class in the Troy et al.,

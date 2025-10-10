@@ -50,14 +50,17 @@ require(sbtools)
 
 ### Spatial 
 require(sf)
+
+## Misc.
+require(here)
 ```
 
 ### Load prior scripts
 
 ```{r}
-source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
+source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
+source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
 ```
 
 # Get location data
@@ -118,7 +121,7 @@ determine various attributes at each flowline in the entire basin
 #### Get all COMIDs in an individual basin
 
 comids_by_basin <- map2(start_comid_df$tributary,
-                        start_comid_df$start_comid,
+                        start_comid_df$comid,
                         all_comid_getter)
 
 #### Bind them all together
@@ -176,7 +179,7 @@ start_comid_hr <- tibble(start_comid = unlist(comid_start_hr)) %>%
   dplyr::select(!geometry)
 ```
 
-# Get StreamStats
+# Get StreamStats - curl timeout here!
 
 We are downloading the StreamStats parameters available for VT and NY.
 In particular, what we are interested in is percent elevation over 1200
@@ -193,7 +196,7 @@ start_points_df <- start_points %>%
 
 #### Create an empty list to save returned data
 
-streamstat_features <- list()
+streamstat_features <- list()]
 
 #### A loop to extract the workspace IDs for each watershed based on 
 #### the outlet points we have imported

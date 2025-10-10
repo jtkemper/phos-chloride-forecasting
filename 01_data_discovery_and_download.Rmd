@@ -54,7 +54,7 @@ require(here)
 ### Load prior scripts
 
 ```{r}
-source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
+source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
 ```
 
 # Get metadata for USGS gage of interest
@@ -78,7 +78,7 @@ lc_site_ids <- lc_site_ids %>%
 
 ##### Specific to gage location and flow monitoring record
 
-lc_gages_metadata <- whatNWISdata(siteNumber = lc_flow_gages$site_no,
+lc_gages_metadata <- whatNWISdata(siteNumber = lc_site_ids$site_no,
              parameterCd = "00060",
              service = "dv") 
 
