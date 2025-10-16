@@ -91,6 +91,9 @@ require(yardstick)
 require(bonsai)
 require(tidymodels)
 
+## Misc.
+require(here)
+
 ### Data viz
 require(ggthemes)
 ```

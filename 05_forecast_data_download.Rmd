@@ -47,6 +47,9 @@ require(glue)
 require(terra)
 require(tidync)
 require(nwmTools)
+
+## Misc.
+require(here)
 ```
 
 ### Load prior scripts

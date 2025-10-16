@@ -49,7 +49,10 @@ require(tidyverse)
 
 ## Parallel computing
 require(future)
-require(furr)
+require(furrr)
+
+## Misc.
+require(here)
 ```
 
 ### Load prior scripts

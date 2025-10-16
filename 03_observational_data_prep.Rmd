@@ -39,6 +39,9 @@ Three dataframes with monitoring data and watershed attributes:
 ### Data mgmt
 require(tidyverse)
 require(zoo)
+
+## Misc.
+require(here)
 ```
 
 ### Load prior scripts
