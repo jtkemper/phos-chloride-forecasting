@@ -47,11 +47,11 @@ require(here)
 ### Load prior scripts
 
 ```{r}
-source(knitr::purl(here("Rmd-files/00_functions.Rmd"), quiet=TRUE))
+source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("Rmd-files/01_data_discovery_and_download.Rmd"), quiet=TRUE))
+source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("Rmd-files/02_watershed_attributes_download.Rmd"), quiet=TRUE))
+source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
 ```
 
 # Data Cleaning & Prep
