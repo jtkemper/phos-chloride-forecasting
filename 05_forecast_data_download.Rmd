@@ -57,13 +57,13 @@ require(here)
 ```{r}
 source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
+#source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
+#source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("03_observational_data_prep.Rmd"), quiet=TRUE))
+#source(knitr::purl(here("03_observational_data_prep.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("04_model_development.Rmd"), quiet=TRUE))
+#source(knitr::purl(here("04_model_development.Rmd"), quiet=TRUE))
 ```
 
 # Download NWM Forecasts
@@ -75,11 +75,12 @@ source(knitr::purl(here("04_model_development.Rmd"), quiet=TRUE))
 #### We only want to download forecasts from v2.1 of the NWM
 #### Which was operational from from 21 April 2021 to 20 September 2023
 
-download_dates_mt <- tibble(date = seq.Date(from = as.Date("2021-04-21"), 
-                                            to = as.Date("2023-09-20"), 
+download_dates_mt <- tibble(date = seq.Date(from = as.Date("2025-10-21"), 
+                                            to = as.Date("2025-11-20"), 
                                             by = "day")) %>%
   .$date
 
+#print(download_dates_mt)
 #### Now generate the Google Bucket URLs where each of those forecasts is archived
 #### Note that the medium-term forecast is initialized every 6 hours, and forecasts
 #### out 204 hrs (8.5 days) in the future
@@ -112,12 +113,18 @@ for(j in 1:length(download_dates_mt)) {
         print(paste(forecast_date_mt, "_ ens", i ))
         
         #### Generate URLs using out rewrite of the nwmTools function
-      
+        sdate = format(forecast_date_mt, format="%Y-%m-%d")
+        print(sdate)
+        print(as.POSIXct(sdate))
+        print(as.POSIXct(sdate, tz = "UTC"))
+        
+        
         urls_v21 <- get_gcp_urls2(domain = "conus",
           output = "channel_rt",
           config = "medium_range",
           ensemble = i,
-          date = forecast_date_mt,
+          date = sdate,
+          #date = forecast_date_mt,
           hour = "00",
         minute = "00",
         num = 204)
@@ -181,7 +188,7 @@ all_urls_and_files_mt_nest <- all_urls_mt %>%
 #*****************Change this to download month of interest**********************#
 
 trim_urls_and_files_mt_nest <- all_urls_and_files_mt_nest %>%
-  filter(month == "Oct2022") 
+  filter(month == "Oct2025") 
 
 #********************************************************************************#
 

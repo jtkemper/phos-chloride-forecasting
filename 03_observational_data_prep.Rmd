@@ -47,11 +47,11 @@ require(here)
 ### Load prior scripts
 
 ```{r}
-source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
+#source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
+#source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
 
-source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
+#source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
 ```
 
 # Data Cleaning & Prep
@@ -65,8 +65,8 @@ source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
 #### And finally normalize by watershed area
 
 flow_data_clean <- flow_data %>%
-  dplyr::select(site_no, dateTime, Flow, waterYear) %>%
-  rename(date = dateTime,
+  dplyr::select(site_no, Date, Flow, waterYear) %>%
+  rename(date = Date,
          discharge_cfs = Flow) %>%
   mutate(discharge_cfs = ifelse(discharge_cfs == 0, 1E-4, discharge_cfs)) %>%
   mutate(discharge_cms = discharge_cfs*0.0283168) %>%
