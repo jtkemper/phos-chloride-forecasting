@@ -55,14 +55,6 @@ require(sf)
 require(here)
 ```
 
-### Load prior scripts
-
-```{r}
-source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
-
-source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
-```
-
 # Get location data
 
 ### Import watershed outlet points
