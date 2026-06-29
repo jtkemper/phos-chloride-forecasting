@@ -1,0 +1,24 @@
+Run All Workflow Steps
+================
+PJC
+2026-06-29
+
+### Packages
+Removing all package loading from this script
+-- We should do this in each script as needed
+
+### Run all scripts
+
+```{r}
+quiet_run = FALSE
+## Prefer doing this in each of the workflow files as necessary
+## 01 and 02 don't need the functions it appears
+## source(knitr::purl(here("00_functions.Rmd"), quiet=quiet_run))
+source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=quiet_run))
+source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=quiet_run))
+source(knitr::purl(here("03_observational_data_prep.Rmd"), quiet=quiet_run))
+source(knitr::purl(here("04_model_development.Rmd"), quiet=quiet_run))
+source(knitr::purl(here("05_forecast_data_download.Rmd"), quiet=quiet_run))
+source(knitr::purl(here("06_forecast_data_prep.Rmd"), quiet=quiet_run))
+source(knitr::purl(here("07_make_forecasts.Rmd"), quiet=quiet_run))
+```

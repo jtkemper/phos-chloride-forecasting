@@ -51,12 +51,6 @@ require(EPATADA)
 require(here)
 ```
 
-### Load prior scripts
-
-```{r}
-source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
-```
-
 # Get metadata for USGS gage of interest
 
 ```{r}

@@ -7,7 +7,6 @@ JTK
 
 ```{r}
 ### NWM download and NetCDF mgmt
-
 require(nwmTools)
 ```
 

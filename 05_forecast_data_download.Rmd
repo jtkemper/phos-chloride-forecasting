@@ -38,32 +38,16 @@ can take a **VERY LONG** time to run
 
 ```{r}
 ### Data mgmt
-
 require(tidyverse)
 require(glue)
 
 ### NWM download and NetCDF mgmt
-
 require(terra)
 require(tidync)
 require(nwmTools)
 
 ## Misc.
 require(here)
-```
-
-### Load prior scripts
-
-```{r}
-source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
-
-#source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
-
-#source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
-
-#source(knitr::purl(here("03_observational_data_prep.Rmd"), quiet=TRUE))
-
-#source(knitr::purl(here("04_model_development.Rmd"), quiet=TRUE))
 ```
 
 # Download NWM Forecasts

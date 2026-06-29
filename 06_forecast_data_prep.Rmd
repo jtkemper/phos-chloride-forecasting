@@ -55,22 +55,6 @@ require(furrr)
 require(here)
 ```
 
-### Load prior scripts
-
-```{r}
-source(knitr::purl(here("00_functions.Rmd"), quiet=TRUE))
-
-source(knitr::purl(here("01_data_discovery_and_download.Rmd"), quiet=TRUE))
-
-source(knitr::purl(here("02_watershed_attributes_download.Rmd"), quiet=TRUE))
-
-source(knitr::purl(here("03_observational_data_prep.Rmd"), quiet=TRUE))
-
-source(knitr::purl(here("04_model_development.Rmd"), quiet=TRUE))
-
-source(knitr::purl(here("05_forecast_data_download.Rmd"), quiet=TRUE))
-```
-
 # Transform NWM
 
 ### Bring in forecast files from where we saved them during download
