@@ -23,4 +23,4 @@ This repository is home to a sequence of scripts that can be used to develop for
 
 ## How to use this repo
 
-Users interested in using this repository to forecast constituent concentrations in their basins of interest should run these scripts in order, making changes to user-specified locations where necessary (USGS Gage IDs, COMIDs, etc.). To reconstruct forecasts made in Kemper et al., scripts should be run in order without modification. 
+Users interested in using this repository to forecast constituent concentrations in their basins of interest should run these scripts in order, making changes to user-specified locations where necessary (USGS Gage IDs, COMIDs, etc.). To reconstruct forecasts made in Kemper et al., scripts should be run in order without modification. Instructions on how to use each script are included within the file.
